@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Check } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -23,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
 import { useUsers } from '@/hooks/useUsers'
 import { useCreateProject } from '@/hooks/useProjectMutations'
 import { MemberTypeahead } from './MemberTypeahead'
@@ -46,9 +44,9 @@ const wizardSchema = z
 type WizardValues = z.infer<typeof wizardSchema>
 
 const STEPS: { label: string; fields: (keyof WizardValues)[] }[] = [
-  { label: 'Project Info', fields: ['name', 'description', 'start_date', 'end_date'] },
-  { label: 'Jira Integration', fields: ['jira_api_token'] },
-  { label: 'Team', fields: ['project_manager', 'member_ids'] },
+  { label: 'Project Details', fields: ['name', 'description', 'start_date', 'end_date'] },
+  { label: 'Connect Date Sources', fields: ['jira_api_token'] },
+  { label: 'Team Configuration', fields: ['project_manager', 'member_ids'] },
 ]
 
 function todayISO() {
@@ -112,61 +110,32 @@ export function ProjectCreateWizard() {
   const isLastStep = step === STEPS.length - 1
 
   return (
-    <Card className="mx-auto max-w-2xl">
-      <CardHeader>
-        <CardTitle>Create Project</CardTitle>
-        <StepIndicator step={step} />
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              if (isLastStep) {
-                void form.handleSubmit(handleSubmit)(event)
-              } else {
-                void goNext()
-              }
-            }}
-            className="space-y-4"
-          >
-            {step === 0 && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
+    <div className="mx-auto max-w-2xl">
+      <StepIndicator />
+      <Card>
+        <CardContent className="pt-6">
+          <Form {...form}>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault()
+                if (isLastStep) {
+                  void form.handleSubmit(handleSubmit)(event)
+                } else {
+                  void goNext()
+                }
+              }}
+              className="space-y-4"
+            >
+              {step === 0 && (
+                <>
                   <FormField
                     control={form.control}
-                    name="start_date"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Start date</FormLabel>
+                        <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} value={field.value ?? ''} />
+                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -174,140 +143,170 @@ export function ProjectCreateWizard() {
                   />
                   <FormField
                     control={form.control}
-                    name="end_date"
+                    name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>End date</FormLabel>
+                        <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} value={field.value ?? ''} />
+                          <Textarea {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
-              </>
-            )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="start_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Start date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="end_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>End date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </>
+              )}
 
-            {step === 1 && (
-              <FormField
-                control={form.control}
-                name="jira_api_token"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Jira API Token (optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        autoComplete="off"
-                        placeholder="Leave blank to connect Jira later"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {step === 2 && (
-              <>
+              {step === 1 && (
                 <FormField
                   control={form.control}
-                  name="project_manager"
+                  name="jira_api_token"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Project manager</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          const nextManagerId = Number(value)
-                          field.onChange(nextManagerId)
-                          // Manager can't also sit in the members list (spec).
-                          form.setValue(
-                            'member_ids',
-                            form.getValues('member_ids').filter((id) => id !== nextManagerId)
-                          )
-                        }}
-                        value={field.value ? String(field.value) : undefined}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select a project manager" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {users.map((user) => (
-                            <SelectItem key={user.id} value={String(user.id)}>
-                              {user.name || user.email}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="member_ids"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Team members</FormLabel>
+                      <FormLabel>Jira API Token (optional)</FormLabel>
                       <FormControl>
-                        <MemberTypeahead
-                          users={users}
-                          excludeUserId={managerId}
-                          value={field.value}
-                          onChange={field.onChange}
+                        <Input
+                          type="password"
+                          autoComplete="off"
+                          placeholder="Leave blank to connect Jira later"
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </>
-            )}
+              )}
 
-            <div className="flex justify-between pt-2">
-              <Button type="button" variant="outline" onClick={goBack} disabled={step === 0}>
-                Back
-              </Button>
-              <Button type="submit" disabled={isLastStep && createProject.isPending}>
-                {isLastStep ? 'Create Project' : 'Next'}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+              {step === 2 && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="project_manager"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Manager</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            const nextManagerId = Number(value)
+                            field.onChange(nextManagerId)
+                            // Manager can't also sit in the members list (spec).
+                            form.setValue(
+                              'member_ids',
+                              form.getValues('member_ids').filter((id) => id !== nextManagerId)
+                            )
+                          }}
+                          value={field.value ? String(field.value) : undefined}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select a project manager" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {users.map((user) => (
+                              <SelectItem key={user.id} value={String(user.id)}>
+                                {user.name || user.email}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="member_ids"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Team Members</FormLabel>
+                        <FormControl>
+                          <MemberTypeahead
+                            users={users}
+                            excludeUserId={managerId}
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+
+              <div className="flex justify-center gap-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={goBack}
+                  disabled={step === 0}
+                  className="min-w-32 rounded-full border-[#38C776] text-[#38C776] hover:bg-[#38C776]/10 hover:text-[#38C776]"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLastStep && createProject.isPending}
+                  className="min-w-32 rounded-full bg-[#38C776] text-white hover:bg-[#2fb267]"
+                >
+                  {isLastStep ? 'Create Project' : 'Next'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
-function StepIndicator({ step }: { step: number }) {
+/** Design shows every step in the same completed navy style, regardless of
+ * current position — no active/upcoming color distinction (per design). */
+function StepIndicator() {
   return (
-    <div className="mt-2 flex items-center">
+    <div className="mb-6 flex items-center justify-center gap-4">
       {STEPS.map((item, index) => (
-        <div key={item.label} className="flex flex-1 items-center last:flex-none">
-          <div className="flex flex-col items-center gap-1">
-            <div
-              className={cn(
-                'flex size-7 items-center justify-center rounded-full text-xs font-semibold',
-                index <= step ? 'bg-primary text-primary-foreground' : 'bg-slate-100 text-slate-400'
-              )}
-            >
-              {index < step ? <Check className="size-4" aria-hidden="true" /> : index + 1}
+        <div key={item.label} className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar text-sm font-semibold text-sidebar-foreground">
+              {index + 1}
             </div>
-            <span
-              className={cn(
-                'text-xs whitespace-nowrap',
-                index <= step ? 'text-foreground' : 'text-slate-400'
-              )}
-            >
+            <span className="text-sm font-semibold whitespace-nowrap text-foreground">
               {item.label}
             </span>
           </div>
           {index < STEPS.length - 1 && (
-            <div className={cn('mx-2 h-px flex-1', index < step ? 'bg-primary' : 'bg-slate-200')} />
+            <div className="h-px w-10 bg-slate-300" aria-hidden="true" />
           )}
         </div>
       ))}
