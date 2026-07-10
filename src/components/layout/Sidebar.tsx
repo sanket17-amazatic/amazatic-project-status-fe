@@ -33,9 +33,13 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-sidebar">
-      <div className="flex h-14 items-center gap-2 px-4">
-        <img src={amazaticLogo} alt="" aria-hidden="true" className="h-6 w-auto" />
-        <span className="text-lg font-semibold text-sidebar-foreground">Amazatic</span>
+      <div className="flex h-14 items-center px-4">
+        <img
+          src={amazaticLogo}
+          alt="Amazatic"
+          className="h-6 w-auto"
+          style={{ aspectRatio: '177.062 / 43.9147' }}
+        />
       </div>
       <nav className="flex flex-col gap-1 px-2">
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
