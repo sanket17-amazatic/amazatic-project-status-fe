@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuthStore } from '@/stores/authStore'
 import { apiFetch } from '@/lib/api'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, ChevronLeft } from 'lucide-react'
 
 /**
  * D-14: fixed 56px top bar, slate-200 bottom border. Icon-only trigger has
@@ -24,7 +24,7 @@ import { ChevronDown } from 'lucide-react'
  * calls the backend session-logout before clearing client state — a real
  * server invalidation, not a client-only discard (T-02-15, no JWT).
  */
-export function TopBar({ title }: { title: string }) {
+export function TopBar({ title, backTo }: { title: string; backTo?: string }) {
   const user = useAuthStore((state) => state.user)
   const clear = useAuthStore((state) => state.clear)
   const navigate = useNavigate()
@@ -39,7 +39,18 @@ export function TopBar({ title }: { title: string }) {
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-8">
-      <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+      <div className="flex items-center gap-2">
+        {backTo && (
+          <Link
+            to={backTo}
+            aria-label="Back"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-foreground hover:bg-accent"
+          >
+            <ChevronLeft className="size-5" aria-hidden="true" />
+          </Link>
+        )}
+        <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+      </div>
       <div className="flex items-center gap-3">
         {/* Presentational only — no backend date-range filtering exists yet. */}
         <Select defaultValue="week">

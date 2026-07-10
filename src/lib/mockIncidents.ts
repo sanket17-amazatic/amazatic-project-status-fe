@@ -47,3 +47,66 @@ export function mockIncidentStats(projectId: number): MockIncidentStats {
     lastSynced: LAST_SYNCED_SAMPLES[projectId % LAST_SYNCED_SAMPLES.length],
   }
 }
+
+export interface MockProjectHealth {
+  healthPercent: number
+  resolvedIncidents: number
+}
+
+/** Project-detail health summary — same placeholder pattern as mockIncidentStats. */
+export function mockProjectHealth(projectId: number): MockProjectHealth {
+  const rand = mockRandom(projectId * 40503 + 7)
+  return {
+    healthPercent: 40 + Math.floor(rand() * 55),
+    resolvedIncidents: Math.floor(rand() * 6),
+  }
+}
+
+export type IncidentSource = 'slack' | 'jira'
+
+export interface MockIncident {
+  id: number
+  title: string
+  priority: Severity
+  sources: IncidentSource[]
+  evidence: number
+  impact: string
+  detected: string
+}
+
+const INCIDENT_TITLES = [
+  'Critical tasks blocked by dependencies',
+  'Engineering team waiting for design decisions',
+  'Client change requests impacting scope',
+  'Unresolved cross-team dependencies',
+  'Multiple high-priority Jira tasks overdue',
+  'Engineering capacity overloaded',
+]
+const IMPACTS = [
+  'Sprint Delivery',
+  'Development Progress',
+  'Scope Management',
+  'Project Coordination',
+  'Release Timeline',
+  'Team Productivity',
+]
+
+/**
+ * Per-project incident feed — fully mock, pending a real Incidents API
+ * (see mockIncidentStats above; no model/serializer/viewset exists yet).
+ */
+export function mockIncidentsList(projectId: number): MockIncident[] {
+  const rand = mockRandom(projectId * 104729 + 11)
+  return INCIDENT_TITLES.map((title, i) => {
+    const sources: IncidentSource[] = rand() > 0.5 ? ['slack', 'jira'] : ['jira']
+    return {
+      id: i + 1,
+      title,
+      priority: SEVERITIES[Math.floor(rand() * SEVERITIES.length)],
+      sources,
+      evidence: 1 + Math.floor(rand() * 20),
+      impact: IMPACTS[i % IMPACTS.length],
+      detected: LAST_SYNCED_SAMPLES[(projectId + i) % LAST_SYNCED_SAMPLES.length],
+    }
+  })
+}

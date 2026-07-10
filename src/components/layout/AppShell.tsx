@@ -11,8 +11,13 @@ const PAGE_TITLES: Record<string, string> = {
 
 function titleFor(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
-  if (pathname.startsWith('/projects/')) return 'Project'
+  if (pathname.startsWith('/projects/')) return 'Project Details'
   return 'Amazatic Project Status'
+}
+
+function backToFor(pathname: string): string | undefined {
+  if (/^\/projects\/\d+$/.test(pathname)) return '/projects'
+  return undefined
 }
 
 /**
@@ -40,7 +45,7 @@ export function AppShell() {
             Menu
           </button>
         </div>
-        <TopBar title={titleFor(location.pathname)} />
+        <TopBar title={titleFor(location.pathname)} backTo={backToFor(location.pathname)} />
         <main className="flex-1 overflow-y-auto px-8 py-6">
           <Outlet />
         </main>
