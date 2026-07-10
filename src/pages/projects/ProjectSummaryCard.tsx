@@ -120,33 +120,33 @@ export function ProjectSummaryCard({
             <div className="flex flex-wrap items-center gap-6 rounded-md bg-green-50 px-4 py-3 text-sm">
               <span>
                 <span className="text-slate-500">Project Health: </span>
-                <span className="font-semibold text-foreground">{health.healthPercent}%</span>
+                <span className="text-base font-semibold text-foreground">{health.healthPercent}%</span>
               </span>
-              <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
+              <span className="h-4 w-px bg-slate-300" aria-hidden="true" />
               <span>
                 <span className="text-slate-500">Open Incidents: </span>
-                <span className="font-semibold text-foreground">{project.open_incidents}</span>
+                <span className="text-base font-semibold text-foreground">{project.open_incidents}</span>
               </span>
-              <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
+              <span className="h-4 w-px bg-slate-300" aria-hidden="true" />
               <span>
                 <span className="text-slate-500">Critical Incidents: </span>
-                <span className="font-semibold text-foreground">{project.critical_incidents}</span>
+                <span className="text-base font-semibold text-foreground">{project.critical_incidents}</span>
               </span>
-              <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
+              <span className="h-4 w-px bg-slate-300" aria-hidden="true" />
               <span>
                 <span className="text-slate-500">Resolved Incidents: </span>
-                <span className="font-semibold text-foreground">{health.resolvedIncidents}</span>
+                <span className="text-base font-semibold text-foreground">{health.resolvedIncidents}</span>
               </span>
-              <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
+              <span className="h-4 w-px bg-slate-300" aria-hidden="true" />
               <span>
                 <span className="text-slate-500">Evidences: </span>
-                <span className="font-semibold text-foreground">{project.evidence_count}</span>
+                <span className="text-base font-semibold text-foreground">{project.evidence_count}</span>
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-md border border-border p-4">
-                <div className="mb-2 flex items-center justify-between border-b border-border pb-2">
+            <div className="grid grid-cols-3 divide-x divide-slate-200 rounded-md bg-green-50 p-4">
+              <div className="pr-4">
+                <div className="mb-2 flex items-center justify-between border-b border-slate-200 pb-2">
                   <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                     <MessageSquare className="size-4 text-violet-600" aria-hidden="true" />
                     Slack Channels
@@ -160,8 +160,8 @@ export function ProjectSummaryCard({
                 </p>
               </div>
 
-              <div className="rounded-md border border-border p-4">
-                <div className="mb-2 flex items-center justify-between border-b border-border pb-2">
+              <div className="px-4">
+                <div className="mb-2 flex items-center justify-between border-b border-slate-200 pb-2">
                   <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                     <Kanban className="size-4 text-blue-600" aria-hidden="true" />
                     Jira Projects
@@ -178,8 +178,8 @@ export function ProjectSummaryCard({
                 )}
               </div>
 
-              <div className="rounded-md border border-border p-4">
-                <div className="mb-2 flex items-center justify-between border-b border-border pb-2">
+              <div className="pl-4">
+                <div className="mb-2 flex items-center justify-between border-b border-slate-200 pb-2">
                   <span className="text-sm font-medium text-foreground">Team Members</span>
                   <span className="text-sm text-slate-500">{members.length}</span>
                 </div>
