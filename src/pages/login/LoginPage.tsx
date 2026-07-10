@@ -74,7 +74,12 @@ export default function LoginPage() {
         />
 
         <div className="relative flex h-full flex-col justify-between p-12">
-          <img src={amazaticLogo} alt="Amazatic" className="h-11 w-auto" />
+          <img
+            src={amazaticLogo}
+            alt="Amazatic"
+            className="h-11 w-auto self-start"
+            style={{ aspectRatio: '177.062 / 43.9147' }}
+          />
 
           <div className="flex max-w-xl flex-col gap-8">
             <p className="text-[28px] font-semibold leading-snug text-white">
