@@ -1,16 +1,27 @@
 import { PieChart, Pie, Cell } from 'recharts'
+import type { IncidentStats } from '@/hooks/useIncidents'
 
-/** Placeholder counts — pending a real Incidents API (see quick-260710-dsh). */
-const DATA = [
-  { name: 'Critical', value: 6, color: '#042050' },
-  { name: 'High', value: 9, color: '#0d428c' },
-  { name: 'Medium', value: 7, color: '#45ae73' },
-  { name: 'Low', value: 2, color: '#bae2c9' },
-]
+const COLORS = {
+  Critical: '#042050',
+  High: '#0d428c',
+  Medium: '#45ae73',
+  Low: '#bae2c9',
+} as const
 
-const TOTAL = DATA.reduce((sum, d) => sum + d.value, 0)
+interface IncidentsByPriorityCardProps {
+  breakdown: IncidentStats['priority_breakdown']
+}
 
-export function IncidentsByPriorityCard() {
+/** Real counts — /api/insights/stats/, derived from SlackMessageInsight. */
+export function IncidentsByPriorityCard({ breakdown }: IncidentsByPriorityCardProps) {
+  const DATA = [
+    { name: 'Critical', value: breakdown.critical, color: COLORS.Critical },
+    { name: 'High', value: breakdown.high, color: COLORS.High },
+    { name: 'Medium', value: breakdown.medium, color: COLORS.Medium },
+    { name: 'Low', value: breakdown.low, color: COLORS.Low },
+  ]
+  const TOTAL = DATA.reduce((sum, d) => sum + d.value, 0)
+
   return (
     <div className="w-[280px] shrink-0 rounded-lg border border-border bg-card p-6">
       <p className="text-sm font-semibold text-foreground">Incidents by Priority</p>

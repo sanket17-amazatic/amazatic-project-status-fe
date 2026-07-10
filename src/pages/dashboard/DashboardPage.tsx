@@ -3,7 +3,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useProjects, type ProjectStatus } from '@/hooks/useProjects'
+import { useIncidentStats } from '@/hooks/useIncidents'
 import { useAuthStore } from '@/stores/authStore'
+import { mockProjectHealth } from '@/lib/mockIncidents'
 import { DashboardToolbar } from './DashboardToolbar'
 import { ProjectsTable } from './ProjectsTable'
 import { OrgSummaryCard } from './OrgSummaryCard'
@@ -15,6 +17,14 @@ export default function DashboardPage() {
   const role = useAuthStore((state) => state.user?.role)
 
   const { data, isLoading, isError, refetch } = useProjects({ status, ordering })
+  const { data: stats } = useIncidentStats()
+  // Resolved Incidents has no real backing yet (no acknowledge/resolve
+  // workflow, Phase 6) — sum the same per-project mock the Project Detail
+  // page uses, over whatever projects are currently loaded.
+  const resolvedIncidents = (data?.results ?? []).reduce(
+    (sum, project) => sum + mockProjectHealth(project.id).resolvedIncidents,
+    0
+  )
 
   function handleSort(field: string) {
     setOrdering((current) => (current === field ? `-${field}` : field))
@@ -22,10 +32,16 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {!isLoading && !isError && data && (
+      {!isLoading && !isError && data && stats && (
         <div className="mb-6 flex items-stretch gap-6">
-          <OrgSummaryCard projectCount={data.count} />
-          <IncidentsByPriorityCard />
+          <OrgSummaryCard
+            analyzedProjectCount={stats.analyzed_projects}
+            openIncidents={stats.open_incidents}
+            criticalIncidents={stats.critical_incidents}
+            resolvedIncidents={resolvedIncidents}
+            evidenceRecords={stats.evidence_records}
+          />
+          <IncidentsByPriorityCard breakdown={stats.priority_breakdown} />
         </div>
       )}
 
