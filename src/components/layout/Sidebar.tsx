@@ -1,17 +1,30 @@
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
-import { LayoutDashboard, FolderKanban, ShieldCheck } from 'lucide-react'
+import {
+  LayoutDashboard,
+  FolderKanban,
+  ShieldCheck,
+  AlertTriangle,
+  Users,
+  Plug,
+} from 'lucide-react'
+import amazaticLogo from '@/assets/login/amazatic-logo.svg'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/incidents', label: 'Incidents', icon: AlertTriangle },
   { to: '/projects', label: 'Projects', icon: FolderKanban },
+  { to: '/users', label: 'Users', icon: Users },
+  { to: '/connections', label: 'Connections', icon: Plug },
 ]
 
 /**
- * D-14: fixed 256px sidebar, slate-100 bg, 1px right border slate-200.
- * Active item uses the reserved accent (UI-SPEC: accent is only for active
- * nav, primary buttons, focus rings, and links — never generic hover).
+ * D-14 (superseded 2026-07-10, quick-260710-dsh): dark navy chrome + brand
+ * green active item, matching the Figma dashboard — structural bits (256px
+ * width, active-item-only accent) unchanged. Incidents/Users/Connections
+ * don't have routes yet; they follow the same stub pattern Admin already
+ * used (wildcard route redirects to `/`).
  * Admin is management-only (T-02-14 — nav visibility is UX only, the API
  * enforces the real authorization).
  */
@@ -19,8 +32,9 @@ export function Sidebar() {
   const role = useAuthStore((state) => state.user?.role)
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-border bg-sidebar">
-      <div className="flex h-14 items-center px-4">
+    <aside className="flex h-screen w-64 shrink-0 flex-col bg-sidebar">
+      <div className="flex h-14 items-center gap-2 px-4">
+        <img src={amazaticLogo} alt="" aria-hidden="true" className="h-6 w-auto" />
         <span className="text-lg font-semibold text-sidebar-foreground">Amazatic</span>
       </div>
       <nav className="flex flex-col gap-1 px-2">
@@ -32,7 +46,7 @@ export function Sidebar() {
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent',
-                isActive && 'bg-sidebar-accent text-sidebar-primary'
+                isActive && 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
               )
             }
           >
@@ -46,7 +60,7 @@ export function Sidebar() {
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent',
-                isActive && 'bg-sidebar-accent text-sidebar-primary'
+                isActive && 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
               )
             }
           >

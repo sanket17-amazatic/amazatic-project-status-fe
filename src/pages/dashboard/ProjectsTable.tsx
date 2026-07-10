@@ -9,8 +9,8 @@ import {
 } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { StatusBadge } from '@/components/StatusBadge'
-import { ProgressCell } from '@/components/ProgressCell'
-import { formatDeadline } from '@/lib/format'
+import { SeverityBadge } from '@/components/SeverityBadge'
+import { mockIncidentStats } from '@/lib/mockIncidents'
 import type { Project } from '@/hooks/useProjects'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 
@@ -52,7 +52,13 @@ interface ProjectsTableProps {
   onSort: (field: string) => void
 }
 
-/** UI-SPEC dashboard table: Project (link) / Status / Progress / Next deadline / PM name. */
+/**
+ * Dashboard table: Project (link) / Manager / Status / Open+Critical
+ * Incidents / Evidence / Severity / Last Synced — matches the Figma
+ * dashboard's column set. Open/Critical Incidents, Evidence, Severity, and
+ * Last Synced are placeholder values (mockIncidentStats) pending a real
+ * Incidents API; Project/Manager/Status stay wired to the real API.
+ */
 export function ProjectsTable({ projects, ordering, onSort }: ProjectsTableProps) {
   return (
     <Table>
@@ -61,46 +67,42 @@ export function ProjectsTable({ projects, ordering, onSort }: ProjectsTableProps
           <TableHead>
             <SortableHeader field="name" label="Project" ordering={ordering} onSort={onSort} />
           </TableHead>
+          <TableHead>Manager</TableHead>
           <TableHead>
             <SortableHeader field="status" label="Status" ordering={ordering} onSort={onSort} />
           </TableHead>
-          <TableHead>
-            <SortableHeader
-              field="progress"
-              label="Progress"
-              ordering={ordering}
-              onSort={onSort}
-            />
-          </TableHead>
-          <TableHead>
-            <SortableHeader
-              field="end_date"
-              label="Next deadline"
-              ordering={ordering}
-              onSort={onSort}
-            />
-          </TableHead>
-          <TableHead>PM name</TableHead>
+          <TableHead>Open Incidents</TableHead>
+          <TableHead>Critical Incidents</TableHead>
+          <TableHead>Evidence</TableHead>
+          <TableHead>Severity</TableHead>
+          <TableHead>Last Synced</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {projects.map((project) => (
-          <TableRow key={project.id} className="hover:bg-slate-100">
-            <TableCell>
-              <Link to={`/projects/${project.id}`} className="text-primary hover:underline">
-                {project.name}
-              </Link>
-            </TableCell>
-            <TableCell>
-              <StatusBadge status={project.status} />
-            </TableCell>
-            <TableCell>
-              <ProgressCell progress={project.progress} />
-            </TableCell>
-            <TableCell className="text-slate-500">{formatDeadline(project.end_date)}</TableCell>
-            <TableCell>{project.project_manager_name}</TableCell>
-          </TableRow>
-        ))}
+        {projects.map((project) => {
+          const mock = mockIncidentStats(project.id)
+          return (
+            <TableRow key={project.id} className="hover:bg-slate-100">
+              <TableCell>
+                <Link to={`/projects/${project.id}`} className="text-primary hover:underline">
+                  {project.name}
+                </Link>
+                <p className="text-xs text-slate-500">{project.description}</p>
+              </TableCell>
+              <TableCell>{project.project_manager_name}</TableCell>
+              <TableCell>
+                <StatusBadge status={project.status} />
+              </TableCell>
+              <TableCell>{mock.openIncidents}</TableCell>
+              <TableCell>{mock.criticalIncidents}</TableCell>
+              <TableCell>{mock.evidence}</TableCell>
+              <TableCell>
+                <SeverityBadge severity={mock.severity} />
+              </TableCell>
+              <TableCell className="text-slate-500">{mock.lastSynced}</TableCell>
+            </TableRow>
+          )
+        })}
       </TableBody>
     </Table>
   )

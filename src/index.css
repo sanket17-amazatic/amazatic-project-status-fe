@@ -90,15 +90,17 @@
 
     --radius: 0.5rem;
 
-    /* Sidebar (D-14): slate-100 bg, slate-200 right border, blue active item */
-    --sidebar: #f1f5f9; /* slate-100 */
-    --sidebar-foreground: #0f172a;
-    --sidebar-primary: #2563eb;
+    /* Sidebar (D-14 color superseded 2026-07-10, quick-260710-dsh): dark
+       navy bg + brand green active item, matching the Figma dashboard.
+       Structural bits (256px width, active-item-only accent) unchanged. */
+    --sidebar: #101f31;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #38c776; /* brand green — matches login screen accent */
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #e2e8f0; /* slate-200 hover within sidebar */
-    --sidebar-accent-foreground: #0f172a;
-    --sidebar-border: #e2e8f0;
-    --sidebar-ring: #2563eb;
+    --sidebar-accent: rgb(255 255 255 / 8%); /* hover within sidebar */
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: rgb(255 255 255 / 8%);
+    --sidebar-ring: #38c776;
 }
 
 /* Dark-mode variables reserved (shadcn ships a .dark block) — no toggle

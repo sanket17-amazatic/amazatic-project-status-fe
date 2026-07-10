@@ -6,6 +6,8 @@ import { useProjects, type ProjectStatus } from '@/hooks/useProjects'
 import { useAuthStore } from '@/stores/authStore'
 import { DashboardToolbar } from './DashboardToolbar'
 import { ProjectsTable } from './ProjectsTable'
+import { OrgSummaryCard } from './OrgSummaryCard'
+import { IncidentsByPriorityCard } from './IncidentsByPriorityCard'
 
 export default function DashboardPage() {
   const [status, setStatus] = useState<ProjectStatus | ''>('')
@@ -20,7 +22,14 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-foreground">Dashboard</h1>
+      {!isLoading && !isError && data && (
+        <div className="mb-6 flex items-stretch gap-6">
+          <OrgSummaryCard projectCount={data.count} />
+          <IncidentsByPriorityCard />
+        </div>
+      )}
+
+      <h2 className="mb-4 text-lg font-semibold text-foreground">Projects</h2>
       <DashboardToolbar status={status} onStatusChange={setStatus} />
 
       {isLoading && (

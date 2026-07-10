@@ -5,6 +5,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuthStore } from '@/stores/authStore'
@@ -33,26 +40,39 @@ export function TopBar({ title }: { title: string }) {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-8">
       <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
-      <DropdownMenu>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger
-              aria-label="User menu"
-              className="flex min-h-11 items-center gap-2 rounded-md px-2 hover:bg-accent"
-            >
-              <Avatar className="size-8">
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm">{user?.email}</span>
-              <ChevronDown className="size-4" aria-hidden="true" />
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent>User menu</TooltipContent>
-        </Tooltip>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-3">
+        {/* Presentational only — no backend date-range filtering exists yet. */}
+        <Select defaultValue="week">
+          <SelectTrigger className="w-32" aria-label="Time range (not yet functional)">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">This Week</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+            <SelectItem value="quarter">This Quarter</SelectItem>
+          </SelectContent>
+        </Select>
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger
+                aria-label="User menu"
+                className="flex min-h-11 items-center gap-2 rounded-md px-2 hover:bg-accent"
+              >
+                <Avatar className="size-8">
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm">{user?.email}</span>
+                <ChevronDown className="size-4" aria-hidden="true" />
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>User menu</TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   )
 }
