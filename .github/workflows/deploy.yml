@@ -1,0 +1,84 @@
+# Build once, sync dist/ to S3, invalidate CloudFront. Terraform (in the
+# amazatic-project-status-backend repo's infra/, envs/staging/frontend.tf)
+# owns the S3 bucket + CloudFront distribution + ACM cert + Route53 record --
+# this workflow only ever pushes built assets, mirroring the backend repo's
+# deploy.yml split of responsibilities (infra via Terraform, app content via
+# this workflow).
+#
+# Auth is via GitHub OIDC (aws_iam_openid_connect_provider + the
+# github_deploy_frontend role in infra/modules/iam) -- no long-lived AWS
+# access keys stored in this repo.
+#
+# One-off bootstrap: the S3 bucket, CloudFront distribution, and this
+# workflow's OIDC trust policy (scoped to this exact repo name) must already
+# exist via `terraform apply` in the backend repo before this workflow's
+# first run -- and AWS_DEPLOY_ROLE_ARN / S3_BUCKET / CLOUDFRONT_DISTRIBUTION_ID
+# below must be set as this repo's Actions secrets/variables from that
+# apply's outputs (frontend_deploy_role_arn / frontend_bucket_name /
+# frontend_distribution_id).
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write # required for OIDC
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  VITE_API_BASE_URL: https://api.amazatic-project-status.in
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ env.VITE_API_BASE_URL }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Two-pass sync so index.html always revalidates (it references the
+      # currently-hashed JS/CSS filenames) while every hashed asset is cached
+      # aggressively as immutable -- a hashed filename never changes content,
+      # so there's nothing to revalidate. `--delete` on the first pass alone
+      # would otherwise remove the previous deploy's index.html before the
+      # second pass re-uploads it; running delete only in the assets pass
+      # (index.html is excluded from it, then explicitly re-uploaded next)
+      # keeps that safe.
+      - name: Sync hashed assets (immutable, long cache)
+        run: |
+          aws s3 sync dist/ "s3://${{ vars.S3_BUCKET }}" \
+            --delete \
+            --cache-control "public,max-age=31536000,immutable" \
+            --exclude "index.html"
+
+      - name: Upload index.html (always revalidate)
+        run: |
+          aws s3 cp dist/index.html "s3://${{ vars.S3_BUCKET }}/index.html" \
+            --cache-control "no-cache"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/index.html" "/"
+
+          echo "frontend is live at: https://app.amazatic-project-status.in"
