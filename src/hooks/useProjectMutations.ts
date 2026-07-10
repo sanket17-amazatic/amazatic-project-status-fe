@@ -10,6 +10,11 @@ export interface ProjectFormValues {
   end_date: string | null
   status: ProjectStatus
   project_manager?: number
+  /** Create-wizard-only fields (backend: ProjectSerializer.create). Optional
+   * Jira token becomes a ProjectIntegration row; member_ids become Membership
+   * rows — both in the same request/transaction as the project itself. */
+  jira_api_token?: string
+  member_ids?: number[]
 }
 
 /**
