@@ -110,3 +110,30 @@ export function mockIncidentsList(projectId: number): MockIncident[] {
     }
   })
 }
+
+export interface MockOrgIncident extends MockIncident {
+  projectId: number
+  projectName: string
+}
+
+/**
+ * Org-wide incident feed for the /incidents page — flattens each visible
+ * project's mock incidents (mockIncidentsList) tagged with its project
+ * name. Client-side aggregation only, same as the per-project list: there
+ * is no Incidents API to violate the "server is sole scoping authority"
+ * rule against — the whole dataset is a placeholder.
+ */
+export function mockAllIncidents(
+  projects: { id: number; name: string }[]
+): MockOrgIncident[] {
+  return projects.flatMap((project) =>
+    mockIncidentsList(project.id)
+      .slice(0, 2)
+      .map((incident) => ({
+        ...incident,
+        id: project.id * 100 + incident.id,
+        projectId: project.id,
+        projectName: project.name,
+      }))
+  )
+}
