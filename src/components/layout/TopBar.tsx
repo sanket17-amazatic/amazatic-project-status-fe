@@ -61,6 +61,9 @@ export function TopBar({ title, backTo }: { title: string; backTo?: string }) {
             <SelectItem value="week">This Week</SelectItem>
             <SelectItem value="month">This Month</SelectItem>
             <SelectItem value="quarter">This Quarter</SelectItem>
+            <SelectItem value="6months">6 Months</SelectItem>
+            <SelectItem value="year">This Year</SelectItem>
+            <SelectItem value="custom">Custom</SelectItem>
           </SelectContent>
         </Select>
         <DropdownMenu>
