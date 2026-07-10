@@ -1,0 +1,9 @@
+# Terraform working dirs & state — never commit
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Real variable values (secrets); only *.example is committed
+terraform.tfvars
+*.auto.tfvars
