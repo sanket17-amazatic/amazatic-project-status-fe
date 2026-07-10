@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Search, MessageSquare, Kanban } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -22,9 +22,11 @@ import { Button } from '@/components/ui/button'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { Pagination } from '@/components/Pagination'
 import { useProjects } from '@/hooks/useProjects'
-import { mockAllIncidents, type Severity } from '@/lib/mockIncidents'
+import { useIncidents } from '@/hooks/useIncidents'
+import { formatIncidentTimestamp } from '@/lib/format'
+import { mapAiPriorityToSeverity, mapSeverityToAiPriority, type Severity } from '@/lib/severity'
 
-const PAGE_SIZE = 12
+const PAGE_SIZE = 25
 
 const SEVERITY_OPTIONS: { value: Severity; label: string }[] = [
   { value: 'critical', label: 'Critical' },
@@ -34,61 +36,47 @@ const SEVERITY_OPTIONS: { value: Severity; label: string }[] = [
 ]
 
 /**
- * Org-wide incident feed (Figma: Incidents nav item). Fully mock — no
- * Incidents API exists yet (see mockAllIncidents). Project list is real
- * (useProjects, already role-scoped server-side); search/project/severity
- * filters run client-side over the mock rows only.
+ * Org-wide incident feed (Figma: Incidents nav item). Real API —
+ * `/api/insights/` (SlackMessageInsight, own-Slack monitoring + AI
+ * classification, already live — just never had a listing page before).
+ * Project list (for the filter dropdown) is real too (useProjects, already
+ * role-scoped server-side). Search/project/severity filters + pagination
+ * are all server-side.
  */
 export default function IncidentsPage() {
+  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [projectId, setProjectId] = useState<string>('')
   const [severity, setSeverity] = useState<Severity | ''>('')
   const [page, setPage] = useState(1)
 
-  const { data, isLoading, isError, refetch } = useProjects({ ordering: 'name' })
-  const projects = data?.results ?? []
+  useEffect(() => {
+    const timeout = setTimeout(() => setSearch(searchInput), 300)
+    return () => clearTimeout(timeout)
+  }, [searchInput])
 
-  const incidents = useMemo(() => mockAllIncidents(data?.results ?? []), [data])
-  const visible = incidents.filter((incident) => {
-    if (projectId && String(incident.projectId) !== projectId) return false
-    if (severity && incident.priority !== severity) return false
-    if (search && !incident.title.toLowerCase().includes(search.toLowerCase())) return false
-    return true
+  useEffect(() => {
+    setPage(1)
+  }, [search, projectId, severity])
+
+  const { data: projectsData } = useProjects({ ordering: 'name' })
+  const projects = projectsData?.results ?? []
+
+  const { data, isLoading, isError, refetch } = useIncidents({
+    project: projectId ? Number(projectId) : '',
+    priority: mapSeverityToAiPriority(severity),
+    search,
+    page,
   })
-  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
-  const pageRows = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const incidents = data?.results ?? []
+  const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1
 
   function handleProjectChange(value: string) {
     setProjectId(value === 'all' ? '' : value)
-    setPage(1)
   }
 
   function handleSeverityChange(value: string) {
     setSeverity(value === 'all' ? '' : (value as Severity))
-    setPage(1)
-  }
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-      </div>
-    )
-  }
-
-  if (isError) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Couldn't load incidents. Check your connection and try again.</AlertTitle>
-        <AlertAction>
-          <Button variant="outline" onClick={() => refetch()}>
-            Try again
-          </Button>
-        </AlertAction>
-      </Alert>
-    )
   }
 
   return (
@@ -103,11 +91,8 @@ export default function IncidentsPage() {
             type="search"
             placeholder="Search incidents, projects"
             aria-label="Search incidents or projects"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value)
-              setPage(1)
-            }}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
             className="h-9 pl-8"
           />
         </div>
@@ -141,38 +126,76 @@ export default function IncidentsPage() {
         </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Incident</TableHead>
-            <TableHead>Project</TableHead>
-            <TableHead>Severity</TableHead>
-            <TableHead>Evidence</TableHead>
-            <TableHead>Impact</TableHead>
-            <TableHead>Detected Time &amp; Date</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pageRows.map((incident) => (
-            <TableRow key={incident.id} className="hover:bg-slate-100">
-              <TableCell className="font-medium text-foreground">{incident.title}</TableCell>
-              <TableCell>{incident.projectName}</TableCell>
-              <TableCell>
-                <SeverityBadge severity={incident.priority} />
-              </TableCell>
-              <TableCell>{incident.evidence}</TableCell>
-              <TableCell>{incident.impact}</TableCell>
-              <TableCell className="text-slate-500">{incident.detected}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      {visible.length === 0 && (
-        <p className="py-12 text-center text-sm text-slate-500">No incidents match your filters.</p>
+      {isLoading && (
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      {isError && (
+        <Alert variant="destructive">
+          <AlertTitle>Couldn't load incidents. Check your connection and try again.</AlertTitle>
+          <AlertAction>
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
+
+      {!isLoading && !isError && (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Incident</TableHead>
+                <TableHead>Project</TableHead>
+                <TableHead>Severity</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Evidence</TableHead>
+                <TableHead>Impact</TableHead>
+                <TableHead>Detected Time &amp; Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {incidents.map((incident) => (
+                <TableRow key={incident.id} className="hover:bg-slate-100">
+                  <TableCell className="font-medium text-foreground">
+                    {incident.ai_summary}
+                  </TableCell>
+                  <TableCell>{incident.project_name}</TableCell>
+                  <TableCell>
+                    <SeverityBadge severity={mapAiPriorityToSeverity(incident.ai_priority)} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <MessageSquare className="size-4 text-violet-600" aria-hidden="true" />
+                      {incident.jira_ticket_keys.length > 0 && (
+                        <Kanban className="size-4 text-blue-600" aria-hidden="true" />
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{incident.evidence}</TableCell>
+                  <TableCell>#{incident.channel_name}</TableCell>
+                  <TableCell className="text-slate-500">
+                    {formatIncidentTimestamp(incident.created_at)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {incidents.length === 0 && (
+            <p className="py-12 text-center text-sm text-slate-500">
+              No incidents match your filters.
+            </p>
+          )}
+
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
+      )}
     </div>
   )
 }

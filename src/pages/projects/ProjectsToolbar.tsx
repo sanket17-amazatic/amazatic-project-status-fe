@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/authStore'
-import type { Severity } from '@/lib/mockIncidents'
+import type { Severity } from '@/lib/severity'
 
 const SEVERITY_OPTIONS: { value: Severity; label: string }[] = [
   { value: 'critical', label: 'Critical' },
@@ -28,8 +28,9 @@ interface ProjectsToolbarProps {
 
 /**
  * Search hits the real `?search=` API param (ProjectViewSet SearchFilter).
- * Severity filters client-side over the mock incident data (no backend
- * severity field exists yet — same placeholder pattern as mockIncidentStats).
+ * Severity is real (ProjectSerializer.get_severity, derived from
+ * SlackMessageInsight) but filters client-side over the current page —
+ * ProjectViewSet has no `?severity=` param (see ProjectsListPage).
  */
 export function ProjectsToolbar({
   search,

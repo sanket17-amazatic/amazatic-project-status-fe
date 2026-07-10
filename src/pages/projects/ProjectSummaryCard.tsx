@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { CheckCircle2, XCircle, RefreshCw, ChevronDown, MessageSquare, Kanban } from 'lucide-react'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { cn } from '@/lib/utils'
-import { mockIncidentStats, mockProjectHealth } from '@/lib/mockIncidents'
+import { formatIncidentTimestamp } from '@/lib/format'
+import { mapAiPriorityToSeverity } from '@/lib/severity'
+import { mockProjectHealth } from '@/lib/mockIncidents'
 import type { Project } from '@/hooks/useProjects'
 import type { ProjectIntegration } from '@/hooks/useIntegrations'
 import type { Membership } from '@/hooks/useMemberships'
@@ -16,12 +18,15 @@ interface ProjectSummaryCardProps {
 
 /**
  * Figma nodes for the Project Details page (collapsed + "View more" expanded
- * states). Severity/health/incident counts are mock placeholders (same
- * precedent as mockIncidentStats — no Incidents API exists yet). Slack
- * channel names are intentionally NOT fabricated: D-07 means no project has
- * real channels yet (auto-discovered once the app installs, Phase 4/7), so
- * this shows the same honest "not connected yet" state as IntegrationsTab
- * rather than inventing channel names attached to a real project.
+ * states). Severity/Open/Critical Incidents/Evidence/Last Synced are real,
+ * derived server-side from SlackMessageInsight (ProjectSerializer) — own-Slack
+ * monitoring + AI classification are already live. Project Health % and
+ * Resolved Incidents stay mock: there's no acknowledge/resolve workflow yet
+ * (that's Phase 6). Slack channel names are intentionally NOT fabricated:
+ * D-07 means no project has real channels yet (auto-discovered once the app
+ * installs, Phase 4/7), so this shows the same honest "not connected yet"
+ * state as IntegrationsTab rather than inventing channel names attached to a
+ * real project.
  */
 export function ProjectSummaryCard({
   project,
@@ -30,7 +35,8 @@ export function ProjectSummaryCard({
   onRefresh,
 }: ProjectSummaryCardProps) {
   const [expanded, setExpanded] = useState(false)
-  const stats = mockIncidentStats(project.id)
+  const severity = mapAiPriorityToSeverity(project.severity)
+  const lastSynced = formatIncidentTimestamp(project.last_synced)
   const health = mockProjectHealth(project.id)
 
   const jira = integrations.find((integration) => integration.type === 'jira')
@@ -46,10 +52,10 @@ export function ProjectSummaryCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-semibold text-foreground">{project.name}</h2>
-            <SeverityBadge severity={stats.severity} />
+            <SeverityBadge severity={severity} />
           </div>
           <div className="flex items-center gap-1.5 text-sm text-slate-500">
-            Last sync: {stats.lastSynced}
+            Last sync: {lastSynced}
             <button
               type="button"
               aria-label="Refresh"
@@ -94,7 +100,7 @@ export function ProjectSummaryCard({
           </span>
           <span>
             <span className="text-slate-500">Last Updated: </span>
-            {stats.lastSynced}
+            {lastSynced}
           </span>
           <button
             type="button"
@@ -119,12 +125,12 @@ export function ProjectSummaryCard({
               <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
               <span>
                 <span className="text-slate-500">Open Incidents: </span>
-                <span className="font-semibold text-foreground">{stats.openIncidents}</span>
+                <span className="font-semibold text-foreground">{project.open_incidents}</span>
               </span>
               <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
               <span>
                 <span className="text-slate-500">Critical Incidents: </span>
-                <span className="font-semibold text-foreground">{stats.criticalIncidents}</span>
+                <span className="font-semibold text-foreground">{project.critical_incidents}</span>
               </span>
               <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
               <span>
@@ -134,7 +140,7 @@ export function ProjectSummaryCard({
               <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
               <span>
                 <span className="text-slate-500">Evidences: </span>
-                <span className="font-semibold text-foreground">{stats.evidence}</span>
+                <span className="font-semibold text-foreground">{project.evidence_count}</span>
               </span>
             </div>
 

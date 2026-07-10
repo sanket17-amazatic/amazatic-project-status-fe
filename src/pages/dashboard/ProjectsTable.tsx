@@ -10,7 +10,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { StatusBadge } from '@/components/StatusBadge'
 import { SeverityBadge } from '@/components/SeverityBadge'
-import { mockIncidentStats } from '@/lib/mockIncidents'
+import { formatIncidentTimestamp } from '@/lib/format'
+import { mapAiPriorityToSeverity } from '@/lib/severity'
 import type { Project } from '@/hooks/useProjects'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 
@@ -55,9 +56,10 @@ interface ProjectsTableProps {
 /**
  * Dashboard table: Project (link) / Manager / Status / Open+Critical
  * Incidents / Evidence / Severity / Last Synced — matches the Figma
- * dashboard's column set. Open/Critical Incidents, Evidence, Severity, and
- * Last Synced are placeholder values (mockIncidentStats) pending a real
- * Incidents API; Project/Manager/Status stay wired to the real API.
+ * dashboard's column set. All columns are real — Open/Critical
+ * Incidents/Evidence/Severity/Last Synced are derived server-side from
+ * SlackMessageInsight (ProjectSerializer), same fields the dedicated
+ * Projects list page uses.
  */
 export function ProjectsTable({ projects, ordering, onSort }: ProjectsTableProps) {
   return (
@@ -79,30 +81,29 @@ export function ProjectsTable({ projects, ordering, onSort }: ProjectsTableProps
         </TableRow>
       </TableHeader>
       <TableBody>
-        {projects.map((project) => {
-          const mock = mockIncidentStats(project.id)
-          return (
-            <TableRow key={project.id} className="hover:bg-slate-100">
-              <TableCell>
-                <Link to={`/projects/${project.id}`} className="text-primary hover:underline">
-                  {project.name}
-                </Link>
-                <p className="text-xs text-slate-500">{project.description}</p>
-              </TableCell>
-              <TableCell>{project.project_manager_name}</TableCell>
-              <TableCell>
-                <StatusBadge status={project.status} />
-              </TableCell>
-              <TableCell>{mock.openIncidents}</TableCell>
-              <TableCell>{mock.criticalIncidents}</TableCell>
-              <TableCell>{mock.evidence}</TableCell>
-              <TableCell>
-                <SeverityBadge severity={mock.severity} />
-              </TableCell>
-              <TableCell className="text-slate-500">{mock.lastSynced}</TableCell>
-            </TableRow>
-          )
-        })}
+        {projects.map((project) => (
+          <TableRow key={project.id} className="hover:bg-slate-100">
+            <TableCell>
+              <Link to={`/projects/${project.id}`} className="text-primary hover:underline">
+                {project.name}
+              </Link>
+              <p className="text-xs text-slate-500">{project.description}</p>
+            </TableCell>
+            <TableCell>{project.project_manager_name}</TableCell>
+            <TableCell>
+              <StatusBadge status={project.status} />
+            </TableCell>
+            <TableCell>{project.open_incidents}</TableCell>
+            <TableCell>{project.critical_incidents}</TableCell>
+            <TableCell>{project.evidence_count}</TableCell>
+            <TableCell>
+              <SeverityBadge severity={mapAiPriorityToSeverity(project.severity)} />
+            </TableCell>
+            <TableCell className="text-slate-500">
+              {formatIncidentTimestamp(project.last_synced)}
+            </TableCell>
+          </TableRow>
+        ))}
       </TableBody>
     </Table>
   )

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getJson } from '@/lib/api'
+import type { AiPriority } from '@/lib/severity'
 
 export type ProjectStatus = 'not_started' | 'in_progress' | 'completed' | 'on_hold'
 
@@ -13,6 +14,12 @@ export interface Project {
   progress: number | null
   project_manager: number
   project_manager_name: string
+  /** Real incident stats, derived server-side from SlackMessageInsight (ProjectSerializer). */
+  open_incidents: number
+  critical_incidents: number
+  evidence_count: number
+  severity: AiPriority | null
+  last_synced: string | null
 }
 
 interface PaginatedResponse<T> {

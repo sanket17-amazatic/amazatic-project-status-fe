@@ -8,7 +8,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { SeverityBadge } from '@/components/SeverityBadge'
-import { mockIncidentStats } from '@/lib/mockIncidents'
+import { formatIncidentTimestamp } from '@/lib/format'
+import { mapAiPriorityToSeverity } from '@/lib/severity'
 import type { Project } from '@/hooks/useProjects'
 
 interface ProjectsListTableProps {
@@ -20,8 +21,8 @@ interface ProjectsListTableProps {
  * Incidents / Critical Incidents / Evidences / Severity / Last Synced.
  * No Status column and no sort affordance, unlike the Dashboard's
  * ProjectsTable (kept separate rather than overloading one component with
- * conditional columns). Incident/severity columns are mock placeholders
- * pending a real Incidents API (see src/lib/mockIncidents.ts).
+ * conditional columns). Incident/severity columns are real, derived
+ * server-side from SlackMessageInsight (ProjectSerializer).
  */
 export function ProjectsListTable({ projects }: ProjectsListTableProps) {
   return (
@@ -38,27 +39,26 @@ export function ProjectsListTable({ projects }: ProjectsListTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {projects.map((project) => {
-          const mock = mockIncidentStats(project.id)
-          return (
-            <TableRow key={project.id} className="hover:bg-slate-100">
-              <TableCell>
-                <Link to={`/projects/${project.id}`} className="text-primary hover:underline">
-                  {project.name}
-                </Link>
-                <p className="text-xs text-slate-500">{project.description}</p>
-              </TableCell>
-              <TableCell>{project.project_manager_name}</TableCell>
-              <TableCell>{mock.openIncidents}</TableCell>
-              <TableCell>{mock.criticalIncidents}</TableCell>
-              <TableCell>{mock.evidence}</TableCell>
-              <TableCell>
-                <SeverityBadge severity={mock.severity} />
-              </TableCell>
-              <TableCell className="text-slate-500">{mock.lastSynced}</TableCell>
-            </TableRow>
-          )
-        })}
+        {projects.map((project) => (
+          <TableRow key={project.id} className="hover:bg-slate-100">
+            <TableCell>
+              <Link to={`/projects/${project.id}`} className="text-primary hover:underline">
+                {project.name}
+              </Link>
+              <p className="text-xs text-slate-500">{project.description}</p>
+            </TableCell>
+            <TableCell>{project.project_manager_name}</TableCell>
+            <TableCell>{project.open_incidents}</TableCell>
+            <TableCell>{project.critical_incidents}</TableCell>
+            <TableCell>{project.evidence_count}</TableCell>
+            <TableCell>
+              <SeverityBadge severity={mapAiPriorityToSeverity(project.severity)} />
+            </TableCell>
+            <TableCell className="text-slate-500">
+              {formatIncidentTimestamp(project.last_synced)}
+            </TableCell>
+          </TableRow>
+        ))}
       </TableBody>
     </Table>
   )

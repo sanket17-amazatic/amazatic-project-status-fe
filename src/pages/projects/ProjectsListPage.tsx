@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/Pagination'
 import { useProjects } from '@/hooks/useProjects'
 import { useAuthStore } from '@/stores/authStore'
-import { mockIncidentStats, type Severity } from '@/lib/mockIncidents'
+import { mapAiPriorityToSeverity, type Severity } from '@/lib/severity'
 import { ProjectsToolbar } from './ProjectsToolbar'
 import { ProjectsListTable } from './ProjectsListTable'
 
@@ -31,10 +31,13 @@ export default function ProjectsListPage() {
   const { data, isLoading, isError, refetch } = useProjects({ ordering: 'name', search, page })
 
   const projects = data?.results ?? []
-  // Severity has no backend field yet — filter client-side over the mock
-  // value (matches the existing mockIncidentStats placeholder pattern).
+  // Severity is derived server-side (ProjectSerializer.get_severity) from the
+  // real SlackMessageInsight data, but there's no ?severity= query param on
+  // ProjectViewSet — filtering the current page client-side here is display
+  // logic on already-authorized data (same reasoning useMemberships/
+  // useIntegrations narrow by ?project= client-side), not a re-scoping.
   const visibleProjects = severity
-    ? projects.filter((project) => mockIncidentStats(project.id).severity === severity)
+    ? projects.filter((project) => mapAiPriorityToSeverity(project.severity) === severity)
     : projects
   const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1
 

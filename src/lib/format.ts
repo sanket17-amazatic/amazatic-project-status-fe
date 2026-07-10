@@ -36,3 +36,27 @@ export function formatRelativeTime(isoDateTime: string | null): string {
   const months = Math.floor(days / 30)
   return `${months} month${months === 1 ? '' : 's'} ago`
 }
+
+/**
+ * Projects/Incidents list "Last Synced"/"Detected" columns — real
+ * created_at, styled as "Today, 9:45 AM" / "Yesterday, 12:45 PM" /
+ * "08 Jul 2026, 3:45 PM" (matches the Figma screenshots' format).
+ */
+export function formatIncidentTimestamp(isoDateTime: string | null): string {
+  if (!isoDateTime) return 'Never'
+  const date = new Date(isoDateTime)
+  const now = new Date()
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+
+  if (isSameDay(date, now)) return `Today, ${time}`
+
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (isSameDay(date, yesterday)) return `Yesterday, ${time}`
+
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${day} ${MONTHS[date.getMonth()]} ${date.getFullYear()}, ${time}`
+}
