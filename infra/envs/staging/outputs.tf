@@ -17,3 +17,8 @@ output "frontend_deploy_role_arn" {
   description = "Set as this repo's AWS_DEPLOY_ROLE_ARN Actions secret."
   value       = aws_iam_role.github_deploy.arn
 }
+
+output "vite_api_base_url" {
+  description = "Backend API base URL for the frontend build. Not yet consumed by deploy.yml (still a hardcoded literal there) -- set as this repo's VITE_API_BASE_URL Actions variable if that workflow is switched to read it from here instead."
+  value       = var.vite_api_base_url
+}
