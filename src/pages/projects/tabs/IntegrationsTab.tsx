@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { X } from 'lucide-react'
+import { ShimmerButton, ShimmerContentBlock } from 'shimmer-effects-react'
 
 /**
  * PROJ-03/ADMIN-02: Jira on/off toggle (D-08, no token entry — Phase 3
@@ -33,11 +34,19 @@ export function IntegrationsTab({ project }: { project: Project }) {
   const isManagement = role === 'management'
   const projectId = String(project.id)
 
-  const { data: integrations } = useIntegrations(projectId)
+  const { data: integrations, isLoading: integrationsLoading } = useIntegrations(projectId)
   const upsertIntegration = useUpsertIntegration(projectId)
   const removeIntegration = useRemoveIntegration(projectId)
   const checkHealth = useCheckHealth(projectId)
   const [removeTargetId, setRemoveTargetId] = useState<number | null>(null)
+
+  if (integrationsLoading) {
+    return (
+      <div className="space-y-6 pt-4">
+        <ShimmerContentBlock mode="light" items={3} />
+      </div>
+    )
+  }
 
   const jira = integrations.find((integration) => integration.type === 'jira')
   const slackOwn = integrations.find((integration) => integration.type === 'slack_own')
@@ -47,14 +56,16 @@ export function IntegrationsTab({ project }: { project: Project }) {
     if (!isManagement || !integration) return null
     return (
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={checkHealth.isPending}
-          onClick={() => checkHealth.mutate(integration.id)}
-        >
-          Check health
-        </Button>
+        <ShimmerButton mode="light" loading={checkHealth.isPending}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={checkHealth.isPending}
+            onClick={() => checkHealth.mutate(integration.id)}
+          >
+            Check health
+          </Button>
+        </ShimmerButton>
         <Tooltip>
           <TooltipTrigger asChild>
             <button

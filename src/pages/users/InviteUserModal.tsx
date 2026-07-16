@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select'
 import { ROLE_OPTIONS } from '@/lib/roles'
 import { useInviteUser, type InviteUserInput } from '@/hooks/useOrgUsers'
+import { ShimmerButton } from 'shimmer-effects-react'
 
 const schema = z.object({
   first_name: z.string().min(1, 'First name is required'),
@@ -137,13 +138,15 @@ export function InviteUserModal({ open, onOpenChange }: InviteUserModalProps) {
               />
             </div>
             <div className="flex justify-end">
-              <Button
-                type="submit"
-                disabled={inviteUser.isPending}
-                className="bg-[#38C776] text-white hover:bg-[#2fb267]"
-              >
-                Send Invite
-              </Button>
+              <ShimmerButton mode="light" loading={inviteUser.isPending}>
+                <Button
+                  type="submit"
+                  disabled={inviteUser.isPending}
+                  className="bg-[#38C776] text-white hover:bg-[#2fb267]"
+                >
+                  Send Invite
+                </Button>
+              </ShimmerButton>
             </div>
           </form>
         </Form>

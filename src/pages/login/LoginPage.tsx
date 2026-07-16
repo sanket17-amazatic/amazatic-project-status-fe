@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { ShimmerButton } from 'shimmer-effects-react'
 import amazaticLogo from '@/assets/login/amazatic-logo.svg'
 import diamondGraphic from '@/assets/login/diamond-graphic.png'
 import vectorLine from '@/assets/login/vector-line.svg'
@@ -137,15 +138,17 @@ export default function LoginPage() {
             <input type="hidden" name="callback_url" value={`${window.location.origin}/`} />
             <input type="hidden" name="process" value="login" />
             <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken ?? ''} />
-            <Button
-              type="submit"
-              disabled={submitting || !csrfToken}
-              className="h-[54px] w-full gap-2 rounded-[6px] border bg-white text-[15px] font-semibold tracking-[-0.15px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.03)] hover:bg-white/90"
-              style={{ borderColor: BRAND_GREEN, color: BRAND_GREEN }}
-            >
-              <img src={googleG} alt="" aria-hidden="true" className="size-6" />
-              Continue with Google
-            </Button>
+            <ShimmerButton mode="light" loading={submitting || !csrfToken} height={54}>
+              <Button
+                type="submit"
+                disabled={submitting || !csrfToken}
+                className="h-[54px] w-full gap-2 rounded-[6px] border bg-white text-[15px] font-semibold tracking-[-0.15px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.03)] hover:bg-white/90"
+                style={{ borderColor: BRAND_GREEN, color: BRAND_GREEN }}
+              >
+                <img src={googleG} alt="" aria-hidden="true" className="size-6" />
+                Continue with Google
+              </Button>
+            </ShimmerButton>
           </form>
         </div>
       </div>

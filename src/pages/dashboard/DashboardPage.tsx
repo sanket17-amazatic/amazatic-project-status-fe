@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Skeleton } from '@/components/ui/skeleton'
+import { ShimmerTable, ShimmerContentBlock, ShimmerBarChart } from 'shimmer-effects-react'
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useProjects, type ProjectStatus } from '@/hooks/useProjects'
@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const role = useAuthStore((state) => state.user?.role)
 
   const { data, isLoading, isError, refetch } = useProjects({ status, ordering })
-  const { data: stats } = useIncidentStats()
+  const { data: stats, isLoading: statsLoading } = useIncidentStats()
   // Resolved Incidents has no real backing yet (no acknowledge/resolve
   // workflow, Phase 6) — sum the same per-project mock the Project Detail
   // page uses, over whatever projects are currently loaded.
@@ -32,7 +32,14 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {!isLoading && !isError && data && stats && (
+      {statsLoading && (
+        <div className="mb-6 flex items-stretch gap-6">
+          <ShimmerContentBlock mode="light" items={4} />
+          <ShimmerBarChart mode="light" chartType="linear" />
+        </div>
+      )}
+
+      {!statsLoading && data && stats && (
         <div className="mb-6 flex items-stretch gap-6">
           <OrgSummaryCard
             analyzedProjectCount={stats.analyzed_projects}
@@ -48,13 +55,7 @@ export default function DashboardPage() {
       <h2 className="mb-4 text-lg font-semibold text-foreground">Projects</h2>
       <DashboardToolbar status={status} onStatusChange={setStatus} />
 
-      {isLoading && (
-        <div className="space-y-2">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      )}
+      {isLoading && <ShimmerTable mode="light" row={3} col={8} />}
 
       {isError && (
         <Alert variant="destructive">

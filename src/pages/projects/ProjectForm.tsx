@@ -22,6 +22,7 @@ import {
 import { useUsers } from '@/hooks/useUsers'
 import type { ProjectFormValues } from '@/hooks/useProjectMutations'
 import type { Project } from '@/hooks/useProjects'
+import { ShimmerButton, ShimmerDiv } from 'shimmer-effects-react'
 
 const STATUS_OPTIONS: { value: Project['status']; label: string }[] = [
   { value: 'not_started', label: 'Not Started' },
@@ -58,7 +59,7 @@ interface ProjectFormProps {
  * owns PM reassignment.
  */
 export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectFormProps) {
-  const { data: users } = useUsers()
+  const { data: users, isLoading: usersLoading } = useUsers()
   const schema = mode === 'create' ? createSchema : editSchema
 
   const form = useForm<ProjectFormValues>({
@@ -171,11 +172,17 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectF
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={String(user.id)}>
-                        {user.name || user.email}
-                      </SelectItem>
-                    ))}
+                    {usersLoading ? (
+                      <div className="p-2">
+                        <ShimmerDiv mode="light" height={32} width="100%" />
+                      </div>
+                    ) : (
+                      users.map((user) => (
+                        <SelectItem key={user.id} value={String(user.id)}>
+                          {user.name || user.email}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -183,9 +190,11 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectF
             )}
           />
         )}
-        <Button type="submit" disabled={pending}>
-          {mode === 'create' ? 'Create Project' : 'Save changes'}
-        </Button>
+        <ShimmerButton mode="light" loading={pending}>
+          <Button type="submit" disabled={pending}>
+            {mode === 'create' ? 'Create Project' : 'Save changes'}
+          </Button>
+        </ShimmerButton>
       </form>
     </Form>
   )

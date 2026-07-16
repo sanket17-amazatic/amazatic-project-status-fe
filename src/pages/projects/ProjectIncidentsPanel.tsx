@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
+import { ShimmerTable } from 'shimmer-effects-react'
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/Pagination'
@@ -101,12 +101,7 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
         </div>
       </div>
 
-      {isLoading && (
-        <div className="space-y-2">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      )}
+      {isLoading && <ShimmerTable mode="light" row={2} col={6} />}
 
       {isError && (
         <Alert variant="destructive">

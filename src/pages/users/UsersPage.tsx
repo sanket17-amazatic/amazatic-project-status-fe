@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
+import { ShimmerTable } from 'shimmer-effects-react'
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/Pagination'
@@ -106,13 +106,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {isLoading && (
-        <div className="space-y-2">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      )}
+      {isLoading && <ShimmerTable mode="light" row={3} col={6} />}
 
       {isError && error?.status === 403 && (
         <Alert variant="destructive">

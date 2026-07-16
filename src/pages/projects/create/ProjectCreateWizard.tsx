@@ -25,6 +25,7 @@ import {
 import { useUsers } from '@/hooks/useUsers'
 import { useCreateProject } from '@/hooks/useProjectMutations'
 import { MemberTypeahead } from './MemberTypeahead'
+import { ShimmerButton, ShimmerDiv } from 'shimmer-effects-react'
 
 const wizardSchema = z
   .object({
@@ -64,7 +65,7 @@ function todayISO() {
 export function ProjectCreateWizard() {
   const [step, setStep] = useState(0)
   const navigate = useNavigate()
-  const { data: users } = useUsers()
+  const { data: users, isLoading: usersLoading } = useUsers()
   const createProject = useCreateProject()
 
   const form = useForm<WizardValues>({
@@ -232,11 +233,17 @@ export function ProjectCreateWizard() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {users.map((user) => (
-                              <SelectItem key={user.id} value={String(user.id)}>
-                                {user.name || user.email}
-                              </SelectItem>
-                            ))}
+                            {usersLoading ? (
+                              <div className="p-2">
+                                <ShimmerDiv mode="light" height={32} width="100%" />
+                              </div>
+                            ) : (
+                              users.map((user) => (
+                                <SelectItem key={user.id} value={String(user.id)}>
+                                  {user.name || user.email}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -250,12 +257,16 @@ export function ProjectCreateWizard() {
                       <FormItem>
                         <FormLabel>Team Members</FormLabel>
                         <FormControl>
-                          <MemberTypeahead
-                            users={users}
-                            excludeUserId={managerId}
-                            value={field.value}
-                            onChange={field.onChange}
-                          />
+                          {usersLoading ? (
+                            <ShimmerDiv mode="light" height={40} width="100%" />
+                          ) : (
+                            <MemberTypeahead
+                              users={users}
+                              excludeUserId={managerId}
+                              value={field.value}
+                              onChange={field.onChange}
+                            />
+                          )}
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -274,13 +285,15 @@ export function ProjectCreateWizard() {
                 >
                   Back
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isLastStep && createProject.isPending}
-                  className="min-w-32 rounded-full bg-[#38C776] text-white hover:bg-[#2fb267]"
-                >
-                  {isLastStep ? 'Create Project' : 'Next'}
-                </Button>
+                <ShimmerButton mode="light" loading={isLastStep && createProject.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={isLastStep && createProject.isPending}
+                    className="min-w-32 rounded-full bg-[#38C776] text-white hover:bg-[#2fb267]"
+                  >
+                    {isLastStep ? 'Create Project' : 'Next'}
+                  </Button>
+                </ShimmerButton>
               </div>
             </form>
           </Form>

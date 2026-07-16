@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
-import { Skeleton } from '@/components/ui/skeleton'
+import { ShimmerTitle, ShimmerText } from 'shimmer-effects-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { useProject } from '@/hooks/useProject'
@@ -36,9 +36,8 @@ export default function ProjectDetailPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-8 w-1/3" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
+        <ShimmerTitle mode="light" line={1} gap={8} width={200} />
+        <ShimmerText mode="light" line={2} gap={8} />
       </div>
     )
   }

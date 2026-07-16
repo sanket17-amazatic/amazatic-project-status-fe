@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { X } from 'lucide-react'
+import { ShimmerButton, ShimmerContentBlock } from 'shimmer-effects-react'
 
 /** PROJ-02: management assigns PM + adds/removes members; both selects are fed by useUsers(). */
 export function TeamTab({ project }: { project: Project }) {
@@ -29,15 +30,23 @@ export function TeamTab({ project }: { project: Project }) {
   const isManagement = role === 'management'
   const projectId = String(project.id)
 
-  const { data: members } = useProjectMembers(projectId)
+  const { data: members, isLoading: membersLoading } = useProjectMembers(projectId)
   // useUsers() 403s for non-management — only fetch/render it when it's usable.
-  const { data: users } = useUsers()
+  const { data: users, isLoading: usersLoading } = useUsers()
   const addMember = useAddMember(projectId)
   const removeMember = useRemoveMember(projectId)
   const assignPM = useAssignPM(projectId)
 
   const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null)
   const [addUserId, setAddUserId] = useState<string>('')
+
+  if (membersLoading || (isManagement && usersLoading)) {
+    return (
+      <div className="space-y-6 pt-4">
+        <ShimmerContentBlock mode="light" items={4} />
+      </div>
+    )
+  }
 
   const memberUserIds = new Set(members.map((member) => member.user))
   const availableUsers = users.filter((user) => !memberUserIds.has(user.id))
@@ -124,15 +133,17 @@ export function TeamTab({ project }: { project: Project }) {
             </SelectContent>
           </Select>
         </div>
-        <Button
-          disabled={!addUserId || addMember.isPending}
-          onClick={() => {
-            addMember.mutate(Number(addUserId))
-            setAddUserId('')
-          }}
-        >
-          Add member
-        </Button>
+        <ShimmerButton mode="light" loading={addMember.isPending}>
+          <Button
+            disabled={!addUserId || addMember.isPending}
+            onClick={() => {
+              addMember.mutate(Number(addUserId))
+              setAddUserId('')
+            }}
+          >
+            Add member
+          </Button>
+        </ShimmerButton>
       </div>
 
       <Dialog open={removeTarget != null} onOpenChange={(open) => !open && setRemoveTarget(null)}>
