@@ -20,11 +20,12 @@ import { ShimmerTable } from 'shimmer-effects-react'
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/Pagination'
-import { useOrgUsers, type UserStatus } from '@/hooks/useOrgUsers'
+import { useOrgUsers, type OrgUser, type UserStatus } from '@/hooks/useOrgUsers'
 import type { UserRole } from '@/stores/authStore'
 import { ROLE_LABELS, ROLE_OPTIONS } from '@/lib/roles'
 import { formatRelativeTime } from '@/lib/format'
 import { InviteUserModal } from './InviteUserModal'
+import { EditUserModal } from './EditUserModal'
 
 const PAGE_SIZE = 25
 
@@ -35,6 +36,7 @@ export default function UsersPage() {
   const [status, setStatus] = useState<UserStatus | ''>('')
   const [page, setPage] = useState(1)
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<OrgUser | null>(null)
 
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(searchInput), 300)
@@ -140,7 +142,11 @@ export default function UsersPage() {
             </TableHeader>
             <TableBody>
               {users.map((user) => (
-                <TableRow key={user.id} className="hover:bg-slate-100">
+                <TableRow
+                  key={user.id}
+                  className="cursor-pointer hover:bg-slate-100"
+                  onClick={() => setEditingUser(user)}
+                >
                   <TableCell className="font-medium text-foreground">
                     {user.name || user.email}
                   </TableCell>
@@ -167,6 +173,12 @@ export default function UsersPage() {
       )}
 
       <InviteUserModal open={inviteOpen} onOpenChange={setInviteOpen} />
+      <EditUserModal
+        user={editingUser}
+        onOpenChange={(open) => {
+          if (!open) setEditingUser(null)
+        }}
+      />
     </div>
   )
 }
