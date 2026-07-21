@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { postJson, patchJson } from '@/lib/api'
+import { postJson, patchJson, del } from '@/lib/api'
 import type { Project, ProjectStatus } from './useProjects'
 
 export interface ProjectFormValues {
@@ -45,6 +45,28 @@ export function useUpdateProject(id: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: ['project', id] })
       toast.success('Changes saved')
+    },
+  })
+}
+
+/**
+ * Management-only server-side (IsManagementOrReadOnly). Cascades on the
+ * backend — deleting a project also deletes its Memberships,
+ * ProjectIntegrations, AssociatedEmails, and SlackMessageInsight rows
+ * (all `on_delete=CASCADE`), i.e. every incident/evidence recorded against
+ * it goes too. Irreversible; callers must confirm before calling this.
+ */
+export function useDeleteProject() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => del(`/api/projects/${id}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      toast.success('Project deleted')
+    },
+    onError: () => {
+      toast.error('Could not delete project')
     },
   })
 }
