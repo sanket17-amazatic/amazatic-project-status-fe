@@ -63,7 +63,13 @@ export function EditUserModal({ user, onOpenChange }: EditUserModalProps) {
   }
 
   return (
-    <Dialog open={user !== null} onOpenChange={onOpenChange}>
+    <Dialog
+      open={user !== null}
+      onOpenChange={(next) => {
+        if (!next) form.reset()
+        onOpenChange(next)
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
