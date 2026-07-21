@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import type { Project } from '@/hooks/useProjects'
 import { useAuthStore } from '@/stores/authStore'
 import {
@@ -27,6 +28,23 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { X } from 'lucide-react'
 import { ShimmerButton, ShimmerContentBlock } from 'shimmer-effects-react'
 
+function baseUrlError(value: string): string | null {
+  if (!value) return 'Required'
+  if (!/^https?:\/\/.+/.test(value)) return 'Must start with http:// or https://'
+  return null
+}
+
+function emailError(value: string): string | null {
+  if (!value) return 'Required'
+  if (!/^\S+@\S+\.\S+$/.test(value)) return 'Enter a valid email'
+  return null
+}
+
+function projectKeyError(value: string): string | null {
+  if (!value) return 'Required'
+  return null
+}
+
 /**
  * Base URL/email/project key for an existing Jira integration row — the
  * fields build_client_from_integration (backend jira_client.py) reads out
@@ -47,11 +65,25 @@ function JiraConfigForm({
   const [baseUrl, setBaseUrl] = useState(saved.jira_base_url ?? '')
   const [email, setEmail] = useState(saved.jira_email ?? '')
   const [projectKey, setProjectKey] = useState(saved.jira_project_key ?? '')
+  const [touched, setTouched] = useState(false)
 
   const dirty =
     baseUrl !== (saved.jira_base_url ?? '') ||
     email !== (saved.jira_email ?? '') ||
     projectKey !== (saved.jira_project_key ?? '')
+
+  const errors = {
+    baseUrl: baseUrlError(baseUrl),
+    email: emailError(email),
+    projectKey: projectKeyError(projectKey),
+  }
+  const valid = !errors.baseUrl && !errors.email && !errors.projectKey
+
+  function handleSave() {
+    setTouched(true)
+    if (!valid) return
+    onSave({ jira_base_url: baseUrl, jira_email: email, jira_project_key: projectKey })
+  }
 
   return (
     <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-3">
@@ -64,6 +96,9 @@ function JiraConfigForm({
           onChange={(event) => setBaseUrl(event.target.value)}
           className="mt-1.5"
         />
+        {touched && errors.baseUrl && (
+          <p className="mt-1 text-xs text-destructive">{errors.baseUrl}</p>
+        )}
       </div>
       <div>
         <Label htmlFor={`jira-email-${integration.id}`}>Account email</Label>
@@ -75,6 +110,7 @@ function JiraConfigForm({
           onChange={(event) => setEmail(event.target.value)}
           className="mt-1.5"
         />
+        {touched && errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
       </div>
       <div>
         <Label htmlFor={`jira-project-key-${integration.id}`}>Project key</Label>
@@ -85,16 +121,17 @@ function JiraConfigForm({
           onChange={(event) => setProjectKey(event.target.value.toUpperCase())}
           className="mt-1.5"
         />
+        {touched && errors.projectKey && (
+          <p className="mt-1 text-xs text-destructive">{errors.projectKey}</p>
+        )}
       </div>
       <div className="flex items-end sm:col-span-3 sm:justify-end">
         <ShimmerButton mode="light" loading={saving}>
           <Button
             type="button"
             size="sm"
-            disabled={!dirty || saving}
-            onClick={() =>
-              onSave({ jira_base_url: baseUrl, jira_email: email, jira_project_key: projectKey })
-            }
+            disabled={!dirty || saving || (touched && !valid)}
+            onClick={handleSave}
           >
             Save Jira config
           </Button>
@@ -118,6 +155,9 @@ export function IntegrationsTab({ project }: { project: Project }) {
   const upsertIntegration = useUpsertIntegration(projectId)
   const removeIntegration = useRemoveIntegration(projectId)
   const checkHealth = useCheckHealth(projectId)
+  // Separate instance so the row's standalone "Check health" button doesn't
+  // light up the config form's save/spinner state, and vice versa (PR #2 review).
+  const configHealthCheck = useCheckHealth(projectId)
   const [removeTargetId, setRemoveTargetId] = useState<number | null>(null)
 
   if (integrationsLoading) {
@@ -190,11 +230,16 @@ export function IntegrationsTab({ project }: { project: Project }) {
           (jira?.id ? (
             <JiraConfigForm
               integration={jira}
-              saving={upsertIntegration.isPending || checkHealth.isPending}
+              saving={upsertIntegration.isPending || configHealthCheck.isPending}
               onSave={(config) =>
                 upsertIntegration.mutate(
                   { id: jira.id, type: 'jira', config },
-                  { onSuccess: () => checkHealth.mutate(jira.id) }
+                  {
+                    onSuccess: () => {
+                      toast.success('Jira config saved')
+                      configHealthCheck.mutate(jira.id)
+                    },
+                  }
                 )
               }
             />

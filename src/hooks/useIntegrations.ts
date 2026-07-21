@@ -28,6 +28,14 @@ interface PaginatedResponse<T> {
   results: T[]
 }
 
+function apiErrorDetail(error: unknown): string | null {
+  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
+    const detail = (error.body as Record<string, unknown>).detail
+    if (typeof detail === 'string') return detail
+  }
+  return null
+}
+
 /**
  * ADMIN-02/D-04..D-06: integrations scoped to a single project. Like
  * useMemberships, the backend list endpoint has no `?project=` filter (it's
@@ -79,10 +87,9 @@ export function useUpsertIntegration(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations', projectId] })
-      toast.success('Integration updated')
     },
-    onError: () => {
-      toast.error('Could not update integration')
+    onError: (error: unknown) => {
+      toast.error(apiErrorDetail(error) ?? 'Could not update integration')
     },
   })
 }
@@ -111,14 +118,7 @@ export function useCheckHealth(projectId: string) {
       queryClient.invalidateQueries({ queryKey: ['integrations', projectId] })
     },
     onError: (error: unknown) => {
-      if (error instanceof ApiError && error.body && typeof error.body === 'object') {
-        const detail = (error.body as Record<string, unknown>).detail
-        if (typeof detail === 'string') {
-          toast.error(detail)
-          return
-        }
-      }
-      toast.error('Health check failed')
+      toast.error(apiErrorDetail(error) ?? 'Health check failed')
     },
   })
 }
