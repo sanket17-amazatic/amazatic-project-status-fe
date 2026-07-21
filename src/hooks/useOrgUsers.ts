@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { getJson, postJson, ApiError } from '@/lib/api'
+import { getJson, postJson, patchJson, ApiError } from '@/lib/api'
 import type { UserRole } from '@/stores/authStore'
 
 export type UserStatus = 'active' | 'inactive'
@@ -91,6 +91,32 @@ export function useInviteUser() {
         }
       }
       toast.error('Could not add user')
+    },
+  })
+}
+
+export interface UpdateUserInput {
+  first_name: string
+  last_name: string
+  role: UserRole
+}
+
+/**
+ * Edits an existing user's name/role — PATCH /api/org-users/:id/
+ * (UserManagementViewSet.partial_update). Email stays fixed: it's the
+ * Google SSO identity key, and changing it here would fight the
+ * upsert-by-email semantics of the invite POST.
+ */
+export function useUpdateUser(id: number | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: UpdateUserInput) => patchJson<OrgUser>(`/api/org-users/${id}/`, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['org-users'] })
+      toast.success('User updated')
+    },
+    onError: () => {
+      toast.error('Could not update user')
     },
   })
 }
