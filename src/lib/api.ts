@@ -97,11 +97,25 @@ export async function del<T>(path: string): Promise<T> {
   return parseJson<T>(response)
 }
 
-/** Pulls DRF's `{"detail": "..."}` out of an ApiError body, for surfacing the real backend message in a toast/alert instead of a generic fallback. */
+/**
+ * Pulls a human-readable message out of an ApiError body, for surfacing the
+ * real backend reason in a toast/alert instead of a generic fallback.
+ * Handles both DRF's generic `{"detail": "..."}` (permission/auth errors,
+ * action-level failures) and its per-field validation shape
+ * (`{"email": ["already exists"]}`, `{"user": "must be a member..."}` from
+ * a serializer's `validate()`) — the latter has no `detail` key at all, so
+ * without this fallback a field error like a duplicate-email 400 silently
+ * became a generic "Could not add..." toast.
+ */
 export function apiErrorDetail(error: unknown): string | null {
-  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
-    const detail = (error.body as Record<string, unknown>).detail
-    if (typeof detail === 'string') return detail
+  if (!(error instanceof ApiError) || !error.body || typeof error.body !== 'object') {
+    return null
+  }
+  const body = error.body as Record<string, unknown>
+  if (typeof body.detail === 'string') return body.detail
+  for (const value of Object.values(body)) {
+    if (typeof value === 'string') return value
+    if (Array.isArray(value) && typeof value[0] === 'string') return value[0]
   }
   return null
 }
