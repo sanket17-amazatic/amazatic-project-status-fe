@@ -11,6 +11,7 @@ import { useProjectMembers } from '@/hooks/useMemberships'
 import { cn } from '@/lib/utils'
 import { ProjectSummaryCard } from './ProjectSummaryCard'
 import { ProjectIncidentsPanel } from './ProjectIncidentsPanel'
+import { JiraTicketsPanel } from './JiraTicketsPanel'
 import { DetailsTab } from './tabs/DetailsTab'
 import { TeamTab } from './tabs/TeamTab'
 import { IntegrationsTab } from './tabs/IntegrationsTab'
@@ -73,6 +74,8 @@ export default function ProjectDetailPage() {
       />
 
       <ProjectIncidentsPanel projectId={project.id} />
+
+      <JiraTicketsPanel projectId={project.id} />
 
       <div className="mt-8 border-t border-border pt-4">
         <button
