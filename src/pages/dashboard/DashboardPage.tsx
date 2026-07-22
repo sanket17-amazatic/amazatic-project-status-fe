@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { ShimmerTable, ShimmerContentBlock, ShimmerBarChart } from 'shimmer-effects-react'
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useProjects, type ProjectStatus } from '@/hooks/useProjects'
@@ -10,6 +9,7 @@ import { DashboardToolbar } from './DashboardToolbar'
 import { ProjectsTable } from './ProjectsTable'
 import { OrgSummaryCard } from './OrgSummaryCard'
 import { IncidentsByPriorityCard } from './IncidentsByPriorityCard'
+import { DashboardStatsSkeleton, ProjectsTableSkeleton } from './DashboardSkeletons'
 
 export default function DashboardPage() {
   const [status, setStatus] = useState<ProjectStatus | ''>('')
@@ -32,12 +32,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {statsLoading && (
-        <div className="mb-6 flex items-stretch gap-6">
-          <ShimmerContentBlock mode="light" items={4} />
-          <ShimmerBarChart mode="light" chartType="linear" />
-        </div>
-      )}
+      {statsLoading && <DashboardStatsSkeleton />}
 
       {!statsLoading && data && stats && (
         <div className="mb-6 flex items-stretch gap-6">
@@ -55,7 +50,7 @@ export default function DashboardPage() {
       <h2 className="mb-4 text-lg font-semibold text-foreground">Projects</h2>
       <DashboardToolbar status={status} onStatusChange={setStatus} />
 
-      {isLoading && <ShimmerTable mode="light" row={3} col={8} />}
+      {isLoading && <ProjectsTableSkeleton />}
 
       {isError && (
         <Alert variant="destructive">

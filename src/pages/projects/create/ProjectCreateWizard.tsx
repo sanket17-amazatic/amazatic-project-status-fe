@@ -235,7 +235,7 @@ export function ProjectCreateWizard() {
                           <SelectContent>
                             {usersLoading ? (
                               <div className="p-2">
-                                <ShimmerDiv mode="light" height={32} width="100%" />
+                                <ShimmerDiv mode="light" height={32} width="100%" loading />
                               </div>
                             ) : (
                               users.map((user) => (
@@ -258,7 +258,7 @@ export function ProjectCreateWizard() {
                         <FormLabel>Team Members</FormLabel>
                         <FormControl>
                           {usersLoading ? (
-                            <ShimmerDiv mode="light" height={40} width="100%" />
+                            <ShimmerDiv mode="light" height={40} width="100%" loading />
                           ) : (
                             <MemberTypeahead
                               users={users}
