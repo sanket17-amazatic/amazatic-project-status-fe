@@ -9,6 +9,25 @@ export interface JiraConfig {
   jira_project_key?: string
 }
 
+function asOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+/**
+ * `ProjectIntegration.config` comes back as `Record<string, unknown>` — an
+ * API response could put anything in there. Read it through here rather
+ * than casting straight to `JiraConfig` (that cast type-checks today only
+ * because JiraConfig's all-optional shape makes it structurally weak, not
+ * because the value is actually validated).
+ */
+export function readJiraConfig(config: Record<string, unknown>): JiraConfig {
+  return {
+    jira_base_url: asOptionalString(config.jira_base_url),
+    jira_email: asOptionalString(config.jira_email),
+    jira_project_key: asOptionalString(config.jira_project_key),
+  }
+}
+
 export type IntegrationType = 'jira' | 'slack_own' | 'slack_client'
 
 export interface ProjectIntegration {

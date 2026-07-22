@@ -11,10 +11,10 @@ import { useProjectMembers } from '@/hooks/useMemberships'
 import { cn } from '@/lib/utils'
 import { ProjectSummaryCard } from './ProjectSummaryCard'
 import { ProjectIncidentsPanel } from './ProjectIncidentsPanel'
+import { JiraTicketsPanel } from './JiraTicketsPanel'
 import { DetailsTab } from './tabs/DetailsTab'
 import { TeamTab } from './tabs/TeamTab'
 import { IntegrationsTab } from './tabs/IntegrationsTab'
-import { TicketsTab } from './tabs/TicketsTab'
 
 /**
  * PROJ-05/D-11: a 403 here comes from the server object-level guard (02-02)
@@ -75,6 +75,8 @@ export default function ProjectDetailPage() {
 
       <ProjectIncidentsPanel projectId={project.id} />
 
+      <JiraTicketsPanel projectId={project.id} />
+
       <div className="mt-8 border-t border-border pt-4">
         <button
           type="button"
@@ -94,7 +96,6 @@ export default function ProjectDetailPage() {
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="team">Team</TabsTrigger>
               <TabsTrigger value="integrations">Integrations</TabsTrigger>
-              <TabsTrigger value="tickets">Tickets</TabsTrigger>
             </TabsList>
             <TabsContent value="details">
               <DetailsTab project={project} />
@@ -104,9 +105,6 @@ export default function ProjectDetailPage() {
             </TabsContent>
             <TabsContent value="integrations">
               <IntegrationsTab project={project} />
-            </TabsContent>
-            <TabsContent value="tickets">
-              <TicketsTab project={project} />
             </TabsContent>
           </Tabs>
         )}

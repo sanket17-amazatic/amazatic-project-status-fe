@@ -1,6 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import type { Project } from '@/hooks/useProjects'
 import { useIntegrations, apiErrorDetail } from '@/hooks/useIntegrations'
 import { useJiraIssue, useJiraIssueComments, useJiraIssues } from '@/hooks/useJiraIssues'
 import {
@@ -99,7 +98,7 @@ function IssueDetailDialog({
                 <ul className="mt-2 space-y-2">
                   {commentsData?.comments.map((comment, index) => (
                     <li
-                      key={index}
+                      key={`${comment.created ?? 'nodate'}-${comment.author ?? 'unknown'}-${index}`}
                       className="rounded-md border border-border p-3"
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -132,15 +131,20 @@ function IssueDetailDialog({
 }
 
 /**
- * Read-only Jira ticket browser. Every list/detail/comment read is a live
- * call to Jira (backend has no local ticket cache), so pagination follows
- * Jira's own opaque `next_page_token` cursor rather than the app's usual
- * numbered-page convention (Pagination component) — "Prev" just steps back
- * through tokens already seen this session instead of re-deriving one.
+ * Read-only Jira ticket browser — a standalone section next to Incidents,
+ * not tucked inside "Manage project" (that disclosure is management-only
+ * edit actions; browsing tickets isn't one, and any project member should
+ * be able to find it without hunting through a mislabeled toggle).
+ *
+ * Every list/detail/comment read is a live call to Jira (backend has no
+ * local ticket cache), so pagination follows Jira's own opaque
+ * `next_page_token` cursor rather than the app's usual numbered-page
+ * convention (Pagination component) — "Prev" just steps back through
+ * tokens already seen this session instead of re-deriving one.
  */
-export function TicketsTab({ project }: { project: Project }) {
-  const projectId = String(project.id)
-  const { data: integrations, isLoading: integrationsLoading } = useIntegrations(projectId)
+export function JiraTicketsPanel({ projectId }: { projectId: number }) {
+  const projectIdStr = String(projectId)
+  const { data: integrations, isLoading: integrationsLoading } = useIntegrations(projectIdStr)
   const jira = integrations.find((integration) => integration.type === 'jira')
 
   const [pageStack, setPageStack] = useState<(string | null)[]>([null])
@@ -148,17 +152,35 @@ export function TicketsTab({ project }: { project: Project }) {
   const [activeIssueKey, setActiveIssueKey] = useState<string | null>(null)
 
   const jiraId = jira?.enabled ? jira.id : undefined
+
+  // Toggling Jira off/on (or swapping which integration row backs it)
+  // invalidates any page_token cursor from the previous session — start
+  // the ticket list over rather than replaying a stale token.
+  useEffect(() => {
+    setPageStack([null])
+    setPageIndex(0)
+  }, [jiraId])
+
   const { data, isLoading, isError, error } = useJiraIssues(jiraId, pageStack[pageIndex])
 
   if (integrationsLoading) {
-    return <ShimmerTable mode="light" row={3} col={5} />
+    return (
+      <div className="mt-6">
+        <h2 className="mb-3 text-lg font-semibold text-foreground">Jira Tickets</h2>
+        <ShimmerTable mode="light" row={3} col={5} />
+      </div>
+    )
   }
 
   if (!jira?.enabled) {
     return (
-      <p className="pt-4 text-sm text-slate-500">
-        Turn on Jira in the Integrations tab and save its config to browse tickets here.
-      </p>
+      <div className="mt-6">
+        <h2 className="mb-3 text-lg font-semibold text-foreground">Jira Tickets</h2>
+        <p className="text-sm text-slate-500">
+          Turn on Jira under Manage project → Integrations and save its config to browse tickets
+          here.
+        </p>
+      </div>
     )
   }
 
@@ -174,7 +196,9 @@ export function TicketsTab({ project }: { project: Project }) {
   }
 
   return (
-    <div className="space-y-4 pt-4">
+    <div className="mt-6 space-y-4">
+      <h2 className="text-lg font-semibold text-foreground">Jira Tickets</h2>
+
       {isLoading && <ShimmerTable mode="light" row={5} col={5} />}
 
       {isError && (

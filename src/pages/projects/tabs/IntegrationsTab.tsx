@@ -7,6 +7,7 @@ import {
   useUpsertIntegration,
   useRemoveIntegration,
   useCheckHealth,
+  readJiraConfig,
   type ProjectIntegration,
   type JiraConfig,
 } from '@/hooks/useIntegrations'
@@ -61,7 +62,7 @@ function JiraConfigForm({
   onSave: (config: JiraConfig) => void
   saving: boolean
 }) {
-  const saved: JiraConfig = integration.config ?? {}
+  const saved = readJiraConfig(integration.config ?? {})
   const [baseUrl, setBaseUrl] = useState(saved.jira_base_url ?? '')
   const [email, setEmail] = useState(saved.jira_email ?? '')
   const [projectKey, setProjectKey] = useState(saved.jira_project_key ?? '')
