@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { getJson, postJson, patchJson, del, apiFetch, ApiError } from '@/lib/api'
+import { getJson, postJson, patchJson, del, apiFetch, apiErrorDetail } from '@/lib/api'
 import type { HealthStatus } from '@/components/HealthBadge'
 
 export interface JiraConfig {
@@ -45,14 +45,6 @@ interface PaginatedResponse<T> {
   next: string | null
   previous: string | null
   results: T[]
-}
-
-export function apiErrorDetail(error: unknown): string | null {
-  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
-    const detail = (error.body as Record<string, unknown>).detail
-    if (typeof detail === 'string') return detail
-  }
-  return null
 }
 
 /**

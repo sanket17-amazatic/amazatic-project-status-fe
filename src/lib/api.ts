@@ -96,3 +96,12 @@ export async function del<T>(path: string): Promise<T> {
   const response = await apiFetch(path, { method: 'DELETE' })
   return parseJson<T>(response)
 }
+
+/** Pulls DRF's `{"detail": "..."}` out of an ApiError body, for surfacing the real backend message in a toast/alert instead of a generic fallback. */
+export function apiErrorDetail(error: unknown): string | null {
+  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
+    const detail = (error.body as Record<string, unknown>).detail
+    if (typeof detail === 'string') return detail
+  }
+  return null
+}
