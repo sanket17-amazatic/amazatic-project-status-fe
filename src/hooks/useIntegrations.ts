@@ -28,7 +28,7 @@ interface PaginatedResponse<T> {
   results: T[]
 }
 
-function apiErrorDetail(error: unknown): string | null {
+export function apiErrorDetail(error: unknown): string | null {
   if (error instanceof ApiError && error.body && typeof error.body === 'object') {
     const detail = (error.body as Record<string, unknown>).detail
     if (typeof detail === 'string') return detail
