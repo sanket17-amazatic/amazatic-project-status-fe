@@ -126,7 +126,18 @@ export default function IncidentsPage() {
         </div>
       </div>
 
-      {isLoading && <ShimmerTable mode="light" row={3} col={7} />}
+      {isLoading && (
+        <ShimmerTable
+          mode="light"
+          row={3}
+          col={7}
+          loading
+          border={1}
+          rounded={0.1}
+          rowGap={14}
+          colPadding={[10, 5, 10, 5]}
+        />
+      )}
 
       {isError && (
         <Alert variant="destructive">

@@ -37,8 +37,8 @@ export default function ProjectDetailPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <ShimmerTitle mode="light" line={1} gap={8} width={200} />
-        <ShimmerText mode="light" line={2} gap={8} />
+        <ShimmerTitle mode="light" line={1} gap={8} width={200} loading />
+        <ShimmerText mode="light" line={2} gap={8} loading />
       </div>
     )
   }

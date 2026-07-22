@@ -164,7 +164,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
   if (integrationsLoading) {
     return (
       <div className="space-y-6 pt-4">
-        <ShimmerContentBlock mode="light" items={3} />
+        <ShimmerContentBlock mode="light" items={3} loading />
       </div>
     )
   }

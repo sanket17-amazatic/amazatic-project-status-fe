@@ -101,7 +101,18 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
         </div>
       </div>
 
-      {isLoading && <ShimmerTable mode="light" row={2} col={6} />}
+      {isLoading && (
+        <ShimmerTable
+          mode="light"
+          row={2}
+          col={6}
+          loading
+          border={1}
+          rounded={0.1}
+          rowGap={14}
+          colPadding={[10, 5, 10, 5]}
+        />
+      )}
 
       {isError && (
         <Alert variant="destructive">

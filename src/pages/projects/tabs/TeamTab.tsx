@@ -43,7 +43,7 @@ export function TeamTab({ project }: { project: Project }) {
   if (membersLoading || (isManagement && usersLoading)) {
     return (
       <div className="space-y-6 pt-4">
-        <ShimmerContentBlock mode="light" items={4} />
+        <ShimmerContentBlock mode="light" items={4} loading />
       </div>
     )
   }

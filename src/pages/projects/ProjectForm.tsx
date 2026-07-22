@@ -174,7 +174,7 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectF
                   <SelectContent>
                     {usersLoading ? (
                       <div className="p-2">
-                        <ShimmerDiv mode="light" height={32} width="100%" />
+                        <ShimmerDiv mode="light" height={32} width="100%" loading />
                       </div>
                     ) : (
                       users.map((user) => (
