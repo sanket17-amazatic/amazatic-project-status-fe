@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getJson, postJson, patchJson, del, apiFetch } from '@/lib/api'
+import { toast } from 'sonner'
+import { getJson, postJson, patchJson, del, apiFetch, ApiError } from '@/lib/api'
 import type { HealthStatus } from '@/components/HealthBadge'
+
+export interface JiraConfig {
+  jira_base_url?: string
+  jira_email?: string
+  jira_project_key?: string
+}
 
 export type IntegrationType = 'jira' | 'slack_own' | 'slack_client'
 
@@ -21,6 +28,14 @@ interface PaginatedResponse<T> {
   results: T[]
 }
 
+function apiErrorDetail(error: unknown): string | null {
+  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
+    const detail = (error.body as Record<string, unknown>).detail
+    if (typeof detail === 'string') return detail
+  }
+  return null
+}
+
 /**
  * ADMIN-02/D-04..D-06: integrations scoped to a single project. Like
  * useMemberships, the backend list endpoint has no `?project=` filter (it's
@@ -37,7 +52,12 @@ export function useIntegrations(projectId: string) {
   return { data: integrations, isLoading: query.isLoading }
 }
 
-/** Creates the integration row if absent, else PATCHes (e.g. toggling Jira enabled). */
+/**
+ * Creates the integration row if absent, else PATCHes. Used both for the
+ * enabled on/off toggle and for saving Jira's config (base_url/email/
+ * project_key — see JiraConfig) — callers pass only the field(s) they're
+ * changing so, e.g., saving config doesn't also flip `enabled`.
+ */
 export function useUpsertIntegration(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -45,20 +65,31 @@ export function useUpsertIntegration(projectId: string) {
       id,
       type,
       enabled,
+      config,
     }: {
       id?: number
       type: IntegrationType
-      enabled: boolean
-    }) =>
-      id
-        ? patchJson<ProjectIntegration>(`/api/integrations/${id}/`, { enabled })
-        : postJson<ProjectIntegration>('/api/integrations/', {
-            project: Number(projectId),
-            type,
-            enabled,
-          }),
+      enabled?: boolean
+      config?: JiraConfig
+    }) => {
+      if (id) {
+        const payload: { enabled?: boolean; config?: JiraConfig } = {}
+        if (enabled !== undefined) payload.enabled = enabled
+        if (config !== undefined) payload.config = config
+        return patchJson<ProjectIntegration>(`/api/integrations/${id}/`, payload)
+      }
+      return postJson<ProjectIntegration>('/api/integrations/', {
+        project: Number(projectId),
+        type,
+        enabled: enabled ?? false,
+        config,
+      })
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations', projectId] })
+    },
+    onError: (error: unknown) => {
+      toast.error(apiErrorDetail(error) ?? 'Could not update integration')
     },
   })
 }
@@ -85,6 +116,9 @@ export function useCheckHealth(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations', projectId] })
+    },
+    onError: (error: unknown) => {
+      toast.error(apiErrorDetail(error) ?? 'Health check failed')
     },
   })
 }
