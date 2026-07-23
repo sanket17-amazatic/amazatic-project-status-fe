@@ -3,26 +3,20 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   FolderKanban,
-  AlertTriangle,
   Users,
-  Plug,
 } from 'lucide-react'
 import amazaticLogo from '@/assets/login/amazatic-logo.svg'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/incidents', label: 'Incidents', icon: AlertTriangle },
   { to: '/projects', label: 'Projects', icon: FolderKanban },
   { to: '/users', label: 'Users', icon: Users },
-  { to: '/connections', label: 'Connections', icon: Plug },
 ]
 
 /**
  * D-14 (superseded 2026-07-10, quick-260710-dsh): dark navy chrome + brand
  * green active item, matching the Figma dashboard — structural bits (256px
- * width, active-item-only accent) unchanged. Incidents/Users use real
- * routes now; Connections is still an unrouted stub (wildcard redirects
- * to `/`).
+ * width, active-item-only accent) unchanged.
  */
 export function Sidebar() {
   return (

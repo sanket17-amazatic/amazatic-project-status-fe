@@ -5,7 +5,6 @@ import { TopBar } from './TopBar'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
-  '/incidents': 'Incidents',
   '/users': 'Users',
   '/projects': 'Projects',
   '/projects/new': 'New Project',
