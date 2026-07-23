@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useIntegrations, apiErrorDetail } from '@/hooks/useIntegrations'
+import { useIntegrations } from '@/hooks/useIntegrations'
+import { apiErrorDetail } from '@/lib/api'
 import { useJiraIssue, useJiraIssueComments, useJiraIssues } from '@/hooks/useJiraIssues'
 import {
   Table,
@@ -49,7 +50,18 @@ function IssueDetailDialog({
   return (
     <Dialog open={issueKey !== null} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
-        {issueLoading && <ShimmerTable mode="light" row={3} col={1} loading={issueLoading} />}
+        {issueLoading && (
+          <ShimmerTable
+            mode="light"
+            row={3}
+            col={1}
+            loading={issueLoading}
+            border={1}
+            rounded={0.1}
+            rowGap={14}
+            colPadding={[10, 5, 10, 5]}
+          />
+        )}
 
         {issueIsError && (
           <Alert variant="destructive">
@@ -167,7 +179,16 @@ export function JiraTicketsPanel({ projectId }: { projectId: number }) {
     return (
       <div className="mt-6">
         <h2 className="mb-3 text-lg font-semibold text-foreground">Jira Tickets</h2>
-        <ShimmerTable mode="light" row={3} col={5} loading={integrationsLoading} />
+        <ShimmerTable
+          mode="light"
+          row={3}
+          col={5}
+          loading={integrationsLoading}
+          border={1}
+          rounded={0.1}
+          rowGap={14}
+          colPadding={[10, 5, 10, 5]}
+        />
       </div>
     )
   }
@@ -199,7 +220,18 @@ export function JiraTicketsPanel({ projectId }: { projectId: number }) {
     <div className="mt-6 space-y-4">
       <h2 className="text-lg font-semibold text-foreground">Jira Tickets</h2>
 
-      {isLoading && <ShimmerTable mode="light" row={5} col={5} loading={isLoading} />}
+      {isLoading && (
+        <ShimmerTable
+          mode="light"
+          row={5}
+          col={5}
+          loading={isLoading}
+          border={1}
+          rounded={0.1}
+          rowGap={14}
+          colPadding={[10, 5, 10, 5]}
+        />
+      )}
 
       {isError && (
         <Alert variant="destructive">
