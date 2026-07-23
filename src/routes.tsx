@@ -3,7 +3,6 @@ import { AuthGuard } from '@/auth/AuthGuard'
 import { AppShell } from '@/components/layout/AppShell'
 import LoginPage from '@/pages/login/LoginPage'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
-import IncidentsPage from '@/pages/incidents/IncidentsPage'
 import ProjectsListPage from '@/pages/projects/ProjectsListPage'
 import ProjectDetailPage from '@/pages/projects/ProjectDetailPage'
 import ProjectCreatePage from '@/pages/projects/ProjectCreatePage'
@@ -26,7 +25,6 @@ export function AppRoutes() {
         }
       >
         <Route path="/" element={<DashboardPage />} />
-        <Route path="/incidents" element={<IncidentsPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/projects" element={<ProjectsListPage />} />
         <Route path="/projects/new" element={<ProjectCreatePage />} />
