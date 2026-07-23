@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -27,6 +27,11 @@ import { useCreateProject } from '@/hooks/useProjectMutations'
 import { MemberTypeahead } from './MemberTypeahead'
 import { ShimmerButton, ShimmerDiv } from 'shimmer-effects-react'
 
+// Same shape check TeamTab.tsx's AssociatedEmailsSection uses for the same
+// concept (accounts.AssociatedEmail) — kept in sync for a consistent
+// validation story across the create wizard and the post-creation flow.
+const EMAIL_RE = /^\S+@\S+\.\S+$/
+
 const wizardSchema = z
   .object({
     name: z.string().min(1, 'Name is required'),
@@ -36,10 +41,30 @@ const wizardSchema = z
     jira_api_token: z.string(),
     project_manager: z.number().optional(),
     member_ids: z.array(z.number()),
+    project_manager_email: z.string(),
+    member_emails: z.record(z.string(), z.string()),
   })
   .refine((data) => data.project_manager !== undefined, {
     message: 'Project manager is required',
     path: ['project_manager'],
+  })
+  .superRefine((data, ctx) => {
+    if (data.project_manager_email && !EMAIL_RE.test(data.project_manager_email)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Enter a valid email',
+        path: ['project_manager_email'],
+      })
+    }
+    for (const [id, email] of Object.entries(data.member_emails)) {
+      if (email && !EMAIL_RE.test(email)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Enter a valid email',
+          path: ['member_emails', id],
+        })
+      }
+    }
   })
 
 type WizardValues = z.infer<typeof wizardSchema>
@@ -78,10 +103,17 @@ export function ProjectCreateWizard() {
       jira_api_token: '',
       project_manager: undefined,
       member_ids: [],
+      project_manager_email: '',
+      member_emails: {},
     },
   })
 
   const managerId = form.watch('project_manager')
+  const memberIds = form.watch('member_ids')
+  const selectedMembers = useMemo(
+    () => users.filter((user) => memberIds.includes(user.id)),
+    [users, memberIds]
+  )
 
   async function goNext() {
     const valid = await form.trigger(STEPS[step].fields)
@@ -93,6 +125,11 @@ export function ProjectCreateWizard() {
   }
 
   function handleSubmit(values: WizardValues) {
+    const member_emails = Object.fromEntries(
+      Object.entries(values.member_emails)
+        .filter(([id, email]) => email && values.member_ids.includes(Number(id)))
+        .map(([id, email]) => [Number(id), email])
+    )
     createProject.mutate(
       {
         name: values.name,
@@ -103,6 +140,8 @@ export function ProjectCreateWizard() {
         project_manager: values.project_manager,
         jira_api_token: values.jira_api_token || undefined,
         member_ids: values.member_ids,
+        project_manager_email: values.project_manager_email || undefined,
+        member_emails: Object.keys(member_emails).length > 0 ? member_emails : undefined,
       },
       { onSuccess: (project) => navigate(`/projects/${project.id}`) }
     )
@@ -252,6 +291,19 @@ export function ProjectCreateWizard() {
                   />
                   <FormField
                     control={form.control}
+                    name="project_manager_email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project manager&apos;s client workspace email (optional)</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="pm@client.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="member_ids"
                     render={({ field }) => (
                       <FormItem>
@@ -272,6 +324,35 @@ export function ProjectCreateWizard() {
                       </FormItem>
                     )}
                   />
+                  {memberIds.length > 0 && (
+                    <div className="space-y-2">
+                      <FormLabel>Client workspace emails (optional)</FormLabel>
+                      {selectedMembers.map((user) => (
+                        <div key={user.id} className="flex items-center gap-2">
+                          <span className="w-1/3 shrink-0 truncate text-sm text-muted-foreground">
+                            {user.name || user.email}
+                          </span>
+                          <FormField
+                            control={form.control}
+                            name={`member_emails.${user.id}`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormControl>
+                                  <Input
+                                    type="email"
+                                    placeholder={`${user.name?.split(' ')[0]?.toLowerCase() || 'member'}@client.com`}
+                                    {...field}
+                                    value={field.value ?? ''}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
 
