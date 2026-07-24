@@ -15,6 +15,12 @@ export interface ProjectFormValues {
    * rows — both in the same request/transaction as the project itself. */
   jira_api_token?: string
   member_ids?: number[]
+  /** Optional client-workspace email (accounts.AssociatedEmail) per selected
+   * PM/member, set in the same request as member_ids/project_manager —
+   * keyed by user id, additive alongside member_ids rather than changing
+   * its plain-int-list shape. */
+  project_manager_email?: string
+  member_emails?: Record<number, string>
 }
 
 /**
