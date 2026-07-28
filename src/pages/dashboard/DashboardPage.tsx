@@ -1,56 +1,42 @@
-import { useState } from 'react'
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { useProjects, type ProjectStatus } from '@/hooks/useProjects'
+import { useProjects } from '@/hooks/useProjects'
 import { useIncidentStats } from '@/hooks/useIncidents'
 import { useAuthStore } from '@/stores/authStore'
-import { mockProjectHealth } from '@/lib/mockIncidents'
-import { DashboardToolbar } from './DashboardToolbar'
-import { ProjectsTable } from './ProjectsTable'
-import { OrgSummaryCard } from './OrgSummaryCard'
-import { IncidentsByPriorityCard } from './IncidentsByPriorityCard'
-import { DashboardStatsSkeleton, ProjectsTableSkeleton } from './DashboardSkeletons'
+import { mapAiPriorityToSeverity } from '@/lib/severity'
+import { HeroBanner } from './HeroBanner'
+import { ProjectSummaryCard } from './ProjectSummaryCard'
+import { HeroBannerSkeleton, ProjectCardsSkeleton } from './DashboardSkeletons'
 
 export default function DashboardPage() {
-  const [status, setStatus] = useState<ProjectStatus | ''>('')
-  const [ordering, setOrdering] = useState('name')
   const role = useAuthStore((state) => state.user?.role)
 
-  const { data, isLoading, isError, refetch } = useProjects({ status, ordering })
+  const { data, isLoading, isError, refetch } = useProjects({})
   const { data: stats, isLoading: statsLoading } = useIncidentStats()
-  // Resolved Incidents has no real backing yet (no acknowledge/resolve
-  // workflow, Phase 6) — sum the same per-project mock the Project Detail
-  // page uses, over whatever projects are currently loaded.
-  const resolvedIncidents = (data?.results ?? []).reduce(
-    (sum, project) => sum + mockProjectHealth(project.id).resolvedIncidents,
-    0
-  )
 
-  function handleSort(field: string) {
-    setOrdering((current) => (current === field ? `-${field}` : field))
-  }
+  const criticalProjectCount = (data?.results ?? []).filter(
+    (project) => mapAiPriorityToSeverity(project.severity) === 'critical'
+  ).length
+  const mediumRiskCount = (data?.results ?? []).filter(
+    (project) => mapAiPriorityToSeverity(project.severity) === 'medium'
+  ).length
 
   return (
     <div>
-      {statsLoading && <DashboardStatsSkeleton />}
+      {statsLoading && <HeroBannerSkeleton />}
 
       {!statsLoading && data && stats && (
-        <div className="mb-6 flex items-stretch gap-6">
-          <OrgSummaryCard
-            analyzedProjectCount={stats.analyzed_projects}
-            openIncidents={stats.open_incidents}
-            criticalIncidents={stats.critical_incidents}
-            resolvedIncidents={resolvedIncidents}
-            evidenceRecords={stats.evidence_records}
-          />
-          <IncidentsByPriorityCard breakdown={stats.priority_breakdown} />
-        </div>
+        <HeroBanner
+          totalProjects={data.count}
+          criticalProjectCount={criticalProjectCount}
+          mediumRiskCount={mediumRiskCount}
+          totalIncidents={stats.open_incidents}
+        />
       )}
 
-      <h2 className="mb-4 text-lg font-semibold text-foreground">Projects</h2>
-      <DashboardToolbar status={status} onStatusChange={setStatus} />
+      <h2 className="mb-4 mt-8 text-lg font-semibold text-foreground">Projects</h2>
 
-      {isLoading && <ProjectsTableSkeleton />}
+      {isLoading && <ProjectCardsSkeleton />}
 
       {isError && (
         <Alert variant="destructive">
@@ -84,7 +70,11 @@ export default function DashboardPage() {
       )}
 
       {!isLoading && !isError && data && data.results.length > 0 && (
-        <ProjectsTable projects={data.results} ordering={ordering} onSort={handleSort} />
+        <div className="flex flex-col gap-4">
+          {data.results.map((project) => (
+            <ProjectSummaryCard key={project.id} project={project} />
+          ))}
+        </div>
       )}
     </div>
   )
