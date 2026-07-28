@@ -3,10 +3,7 @@ import { Card } from '@/components/ui/card'
 /** Mirrors HeroBanner's shape exactly so layout doesn't shift on load. */
 export function HeroBannerSkeleton() {
   return (
-    <div
-      className="flex w-full flex-col gap-4 overflow-hidden rounded-lg p-6"
-      style={{ background: 'linear-gradient(135deg, #0b1e3a 0%, #142437 100%)' }}
-    >
+    <div className="flex w-full flex-col gap-4 overflow-hidden rounded-lg bg-[#0b1e3a] p-6">
       <div className="h-3.5 w-56 animate-pulse rounded bg-white/15" />
       <div className="flex w-full flex-col items-start gap-4 lg:flex-row lg:items-center">
         <div className="h-4 w-full max-w-md animate-pulse rounded bg-white/10 lg:flex-1" />
