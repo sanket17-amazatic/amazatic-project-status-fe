@@ -1,19 +1,4 @@
 import { Link } from 'react-router-dom'
-import {
-  Hash,
-  Ticket,
-  Mail,
-  Users,
-  Phone,
-  MessageSquare,
-  Clock,
-  GitBranch,
-  Wrench,
-  RefreshCw,
-  Repeat,
-  Ban,
-  type LucideIcon,
-} from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { mapAiPriorityToSeverity } from '@/lib/severity'
@@ -30,24 +15,25 @@ interface ProjectSummaryCardProps {
   project: Project
 }
 
-const SOURCE_META: Record<MockSourceKey, { label: string; icon: LucideIcon }> = {
-  slack: { label: 'Slack', icon: Hash },
-  jira: { label: 'Jira', icon: Ticket },
-  email: { label: 'Email', icon: Mail },
-  teams: { label: 'Microsoft Teams', icon: Users },
-  calls: { label: 'Calls', icon: Phone },
+const SOURCE_META: Record<MockSourceKey, { label: string; icon: string }> = {
+  slack: { label: 'Slack', icon: '/icons/source-slack.svg' },
+  jira: { label: 'Jira', icon: '/icons/source-jira.svg' },
+  email: { label: 'Email', icon: '/icons/source-email.svg' },
+  teams: { label: 'Microsoft Teams', icon: '/icons/source-teams.svg' },
+  calls: { label: 'Calls', icon: '/icons/source-calls.svg' },
 }
 
 const SOURCE_ORDER: MockSourceKey[] = ['slack', 'jira', 'email', 'teams', 'calls']
 
-const CATEGORY_ICON: Record<MockIncidentCategory, LucideIcon> = {
-  Communication: MessageSquare,
-  'Delivery Delays': Clock,
-  'Cross team dependency': GitBranch,
-  'Technical Debt': Wrench,
-  'Scope Change': RefreshCw,
-  'Sprint Spillover': Repeat,
-  Blockers: Ban,
+/** "Scope Change" intentionally shares the technical-debt icon — matches the reference repo's lib/categories.ts. */
+const CATEGORY_ICON: Record<MockIncidentCategory, string> = {
+  Communication: '/icons/category-communication.svg',
+  'Delivery Delays': '/icons/category-delivery-delays.svg',
+  'Cross team dependency': '/icons/category-cross-team.svg',
+  'Technical Debt': '/icons/category-technical-debt.svg',
+  'Scope Change': '/icons/category-technical-debt.svg',
+  'Sprint Spillover': '/icons/category-sprint-spillover.svg',
+  Blockers: '/icons/category-blockers.svg',
 }
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -103,14 +89,13 @@ export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
             {SOURCE_ORDER.map((key) => {
               const counts = sources[key]
               const meta = SOURCE_META[key]
-              const Icon = meta.icon
               return (
                 <div
                   key={key}
                   className="flex min-w-[130px] flex-1 flex-col gap-2 rounded-sm border border-border bg-muted p-3 lg:flex-none lg:w-auto"
                 >
                   <div className="flex items-center gap-2">
-                    <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <img src={meta.icon} alt="" className="size-4 shrink-0" aria-hidden="true" />
                     <p className="whitespace-nowrap text-sm font-semibold text-foreground">{meta.label}</p>
                   </div>
                   <div className="flex items-center gap-3 whitespace-nowrap text-sm text-foreground">
@@ -154,10 +139,9 @@ export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
               {chunk(categories, 2).map((column, columnIndex) => (
                 <div key={columnIndex} className="flex shrink-0 flex-col gap-4">
                   {column.map(({ category, count }) => {
-                    const Icon = CATEGORY_ICON[category]
                     return (
                       <div key={category} className="flex items-center gap-2">
-                        <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <img src={CATEGORY_ICON[category]} alt="" className="size-3.5 shrink-0" aria-hidden="true" />
                         <p className="whitespace-nowrap text-sm text-foreground">
                           <span className="font-semibold">{count}</span> <span>{category}</span>
                         </p>
