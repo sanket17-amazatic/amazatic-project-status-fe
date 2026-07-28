@@ -57,6 +57,10 @@ const wizardSchema = z
       })
     }
     for (const [id, email] of Object.entries(data.member_emails)) {
+      // Deselecting a member unmounts its field but RHF keeps the stale
+      // value in state — skip it so a leftover invalid email can't block
+      // submit with no visible field to fix (mirrors handleSubmit's filter).
+      if (!data.member_ids.includes(Number(id))) continue
       if (email && !EMAIL_RE.test(email)) {
         ctx.addIssue({
           code: 'custom',
@@ -263,6 +267,8 @@ export function ProjectCreateWizard() {
                               'member_ids',
                               form.getValues('member_ids').filter((id) => id !== nextManagerId)
                             )
+                            // Old manager's typed email must not silently attach to the new one.
+                            form.setValue('project_manager_email', '')
                           }}
                           value={field.value ? String(field.value) : undefined}
                         >
