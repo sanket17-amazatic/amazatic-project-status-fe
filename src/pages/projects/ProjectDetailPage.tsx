@@ -10,6 +10,7 @@ import { useIntegrations } from '@/hooks/useIntegrations'
 import { useProjectMembers } from '@/hooks/useMemberships'
 import { cn } from '@/lib/utils'
 import { ProjectSummaryCard } from './ProjectSummaryCard'
+import { TodaysSummary } from './TodaysSummary'
 import { ProjectIncidentsPanel } from './ProjectIncidentsPanel'
 import { JiraTicketsPanel } from './JiraTicketsPanel'
 import { DetailsTab } from './tabs/DetailsTab'
@@ -72,6 +73,10 @@ export default function ProjectDetailPage() {
         members={members}
         onRefresh={() => refetch()}
       />
+
+      <div className="mt-6">
+        <TodaysSummary project={project} />
+      </div>
 
       <ProjectIncidentsPanel projectId={project.id} />
 

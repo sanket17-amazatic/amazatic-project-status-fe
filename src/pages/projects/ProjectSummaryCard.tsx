@@ -54,16 +54,32 @@ export function ProjectSummaryCard({
             <h2 className="text-xl font-semibold text-foreground">{project.name}</h2>
             <SeverityBadge severity={severity} />
           </div>
-          <div className="flex items-center gap-1.5 text-sm text-slate-500">
-            Last sync: {lastSynced}
-            <button
-              type="button"
-              aria-label="Refresh"
-              onClick={onRefresh}
-              className="flex size-6 items-center justify-center rounded-md hover:bg-slate-100"
-            >
-              <RefreshCw className="size-3.5" aria-hidden="true" />
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-sm text-slate-500">
+              Last sync: {lastSynced}
+              <button
+                type="button"
+                aria-label="Refresh"
+                onClick={onRefresh}
+                className="flex size-6 items-center justify-center rounded-md hover:bg-slate-100"
+              >
+                <RefreshCw className="size-3.5" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-green-50 px-3 py-2">
+              <img
+                src="/icons/source-slack.svg"
+                alt={slackConnected ? 'Slack connected' : 'Slack not connected'}
+                title={slackConnected ? 'Slack connected' : 'Slack not connected'}
+                className={cn('size-4', !slackConnected && 'opacity-30 grayscale')}
+              />
+              <img
+                src="/icons/source-jira.svg"
+                alt={jiraConnected ? 'Jira connected' : 'Jira not connected'}
+                title={jiraConnected ? 'Jira connected' : 'Jira not connected'}
+                className={cn('size-4', !jiraConnected && 'opacity-30 grayscale')}
+              />
+            </div>
           </div>
         </div>
 

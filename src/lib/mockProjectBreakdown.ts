@@ -66,9 +66,9 @@ const ACTION_POINT_POOL = [
   'Track platform reliability metrics.',
 ] as const
 
-export function mockActionPoints(projectId: number): string[] {
+export function mockActionPoints(projectId: number, count = 6): string[] {
   const rand = mockRandom(projectId * 50331 + 29)
-  return [...ACTION_POINT_POOL].sort(() => rand() - 0.5).slice(0, 6)
+  return [...ACTION_POINT_POOL].sort(() => rand() - 0.5).slice(0, count)
 }
 
 export type MockIncidentCategory =

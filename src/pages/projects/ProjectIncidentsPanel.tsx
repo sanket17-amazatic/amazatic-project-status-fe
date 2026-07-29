@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, MessageSquare, Kanban } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -23,7 +23,9 @@ import { Pagination } from '@/components/Pagination'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { formatIncidentTimestamp } from '@/lib/format'
 import { mapAiPriorityToSeverity, mapSeverityToAiPriority, type Severity } from '@/lib/severity'
-import { useIncidents } from '@/hooks/useIncidents'
+import { useIncidents, type Incident } from '@/hooks/useIncidents'
+import { useIntegrations, readJiraConfig } from '@/hooks/useIntegrations'
+import { EvidenceDrawer } from './EvidenceDrawer'
 
 const PAGE_SIZE = 25
 
@@ -44,6 +46,18 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
   const [search, setSearch] = useState('')
   const [severity, setSeverity] = useState<Severity | ''>('')
   const [page, setPage] = useState(1)
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const { data: integrations } = useIntegrations(String(projectId))
+  const jiraBaseUrl = readJiraConfig(
+    integrations.find((integration) => integration.type === 'jira')?.config ?? {}
+  ).jira_base_url
+
+  function openEvidence(incident: Incident) {
+    setSelectedIncident(incident)
+    setDrawerOpen(true)
+  }
 
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(searchInput), 300)
@@ -131,16 +145,24 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Incident</TableHead>
-                <TableHead>Priority</TableHead>
+                <TableHead>Severity</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Evidence</TableHead>
-                <TableHead>Impact</TableHead>
                 <TableHead>Detected</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {incidents.map((incident) => (
-                <TableRow key={incident.id} className="hover:bg-slate-100">
+                <TableRow
+                  key={incident.id}
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => openEvidence(incident)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') openEvidence(incident)
+                  }}
+                  className="cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                >
                   <TableCell className="font-medium text-foreground">
                     {incident.ai_summary}
                   </TableCell>
@@ -149,14 +171,13 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <MessageSquare className="size-4 text-violet-600" aria-hidden="true" />
+                      <img src="/icons/source-slack.svg" alt="Slack" className="size-4 shrink-0" />
                       {incident.jira_ticket_keys.length > 0 && (
-                        <Kanban className="size-4 text-blue-600" aria-hidden="true" />
+                        <img src="/icons/source-jira.svg" alt="Jira" className="size-4 shrink-0" />
                       )}
                     </div>
                   </TableCell>
                   <TableCell>{incident.evidence}</TableCell>
-                  <TableCell>#{incident.channel_name}</TableCell>
                   <TableCell className="text-slate-500">
                     {formatIncidentTimestamp(incident.created_at)}
                   </TableCell>
@@ -164,6 +185,13 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
               ))}
             </TableBody>
           </Table>
+
+          <EvidenceDrawer
+            incident={selectedIncident}
+            jiraBaseUrl={jiraBaseUrl}
+            open={drawerOpen}
+            onOpenChange={setDrawerOpen}
+          />
 
           {incidents.length === 0 && (
             <p className="py-8 text-center text-sm text-slate-500">
