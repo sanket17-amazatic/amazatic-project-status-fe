@@ -22,7 +22,7 @@ export default function DashboardPage() {
   ).length
 
   return (
-    <div>
+    <div className="mx-auto max-w-[1147px]">
       {statsLoading && <HeroBannerSkeleton />}
 
       {!statsLoading && data && stats && (
