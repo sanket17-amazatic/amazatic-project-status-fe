@@ -135,7 +135,7 @@ export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
           </SectionCard>
 
           <SectionCard title="Incidents by category" className="flex flex-col lg:w-[593px] lg:shrink-0">
-            <div className="grid w-full grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+            <div className="grid w-full grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3">
               {categories.map(({ category, count }) => (
                 <div key={category} className="flex items-center gap-2">
                   <img src={CATEGORY_ICON[category]} alt="" className="size-3.5 shrink-0" aria-hidden="true" />
