@@ -1,0 +1,76 @@
+import { Link, useParams } from 'react-router-dom'
+import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
+import { ShimmerTitle, ShimmerText } from 'shimmer-effects-react'
+import { Button } from '@/components/ui/button'
+import { useProject } from '@/hooks/useProject'
+import { DetailsTab } from './tabs/DetailsTab'
+import { TeamTab } from './tabs/TeamTab'
+import { IntegrationsTab } from './tabs/IntegrationsTab'
+import { TerminologySection } from './TerminologySection'
+
+/**
+ * Dedicated settings page (replacing the old "Manage project" disclosure on
+ * the detail page) — renders the existing, unmodified DetailsTab/TeamTab/
+ * IntegrationsTab as standalone sections instead of tab-switcher content.
+ * Each section already saves for real via its own mutations; there's no
+ * page-level "Update Changes" button because there's nothing to batch —
+ * unlike the reference design, whose own Cancel/Update buttons don't call
+ * any API at all.
+ */
+export default function ProjectSettingsPage() {
+  const { id } = useParams()
+  const { data: project, isLoading, isError, error } = useProject(id)
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <ShimmerTitle mode="light" line={1} gap={8} width={200} loading />
+        <ShimmerText mode="light" line={2} gap={8} loading />
+      </div>
+    )
+  }
+
+  if (isError && error?.status === 403) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>You don't have access to this project.</AlertTitle>
+        <AlertAction>
+          <Button asChild variant="outline">
+            <Link to="/">Back to dashboard</Link>
+          </Button>
+        </AlertAction>
+      </Alert>
+    )
+  }
+
+  if (isError || !project) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Couldn't load this project. Check your connection and try again.</AlertTitle>
+      </Alert>
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="mb-3 text-lg font-semibold text-foreground">Project Details</h2>
+        <DetailsTab project={project} />
+      </div>
+
+      <div className="border-t border-border pt-8">
+        <h2 className="mb-3 text-lg font-semibold text-foreground">Team</h2>
+        <TeamTab project={project} />
+      </div>
+
+      <div className="border-t border-border pt-8">
+        <TerminologySection />
+      </div>
+
+      <div className="border-t border-border pt-8">
+        <h2 className="mb-3 text-lg font-semibold text-foreground">Connected Data Sources</h2>
+        <IntegrationsTab project={project} />
+      </div>
+    </div>
+  )
+}

@@ -6,6 +6,7 @@ import DashboardPage from '@/pages/dashboard/DashboardPage'
 import ProjectsListPage from '@/pages/projects/ProjectsListPage'
 import ProjectDetailPage from '@/pages/projects/ProjectDetailPage'
 import ProjectCreatePage from '@/pages/projects/ProjectCreatePage'
+import ProjectSettingsPage from '@/pages/projects/ProjectSettingsPage'
 import UsersPage from '@/pages/users/UsersPage'
 
 /**
@@ -29,6 +30,7 @@ export function AppRoutes() {
         <Route path="/projects" element={<ProjectsListPage />} />
         <Route path="/projects/new" element={<ProjectCreatePage />} />
         <Route path="/projects/:id" element={<ProjectDetailPage />} />
+        <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
