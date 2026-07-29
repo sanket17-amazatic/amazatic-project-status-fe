@@ -137,9 +137,9 @@ export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
           <SectionCard title="Incidents by category" className="flex flex-col lg:w-[593px] lg:shrink-0">
             <div className="grid w-full grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3">
               {categories.map(({ category, count }) => (
-                <div key={category} className="flex items-center gap-2">
+                <div key={category} className="flex min-w-0 items-center gap-2">
                   <img src={CATEGORY_ICON[category]} alt="" className="size-3.5 shrink-0" aria-hidden="true" />
-                  <p className="whitespace-nowrap text-sm text-foreground">
+                  <p className="min-w-0 text-sm text-foreground">
                     <span className="font-semibold">{count}</span> <span>{category}</span>
                   </p>
                 </div>
