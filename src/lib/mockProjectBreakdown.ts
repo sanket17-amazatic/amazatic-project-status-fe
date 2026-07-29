@@ -39,6 +39,21 @@ export function mockSourceBreakdown(projectId: number): Record<MockSourceKey, Mo
   return result
 }
 
+/**
+ * Splits a real remainder (open_incidents - critical_incidents) into a
+ * Medium/Low pair for the Projects list's Incidents column — there's no
+ * backend field for that split, but T=C+M+L must always hold, so this
+ * mocks the ratio only, not the total.
+ */
+export function mockIncidentMediumLowSplit(
+  projectId: number,
+  remaining: number
+): { medium: number; low: number } {
+  const rand = mockRandom(projectId * 68111 + 53)
+  const medium = Math.round(remaining * (0.3 + rand() * 0.4))
+  return { medium, low: remaining - medium }
+}
+
 const ACTION_POINT_POOL = [
   'Review critical delivery risks.',
   'Resolve cross-team blockers.',

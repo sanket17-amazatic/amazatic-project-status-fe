@@ -42,7 +42,7 @@ export default function ProjectsListPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1
 
   return (
-    <div>
+    <div className="mx-auto max-w-[1147px]">
       <ProjectsToolbar
         search={searchInput}
         onSearchChange={setSearchInput}
