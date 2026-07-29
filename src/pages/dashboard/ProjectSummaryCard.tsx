@@ -118,7 +118,7 @@ export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
           </div>
         </div>
 
-        <div className="flex w-full flex-col gap-4 lg:flex-row">
+        <div className="flex w-full flex-col gap-4 lg:flex-row lg:flex-wrap">
           <SectionCard title="Action Points" className="flex flex-col lg:w-[506px] lg:shrink-0">
             <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start">
               {chunk(actionPoints, 3).map((column, columnIndex) => (
