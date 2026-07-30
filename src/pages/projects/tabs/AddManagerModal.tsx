@@ -11,6 +11,9 @@ import {
   useRemoveAssociatedEmail,
 } from '@/hooks/useAssociatedEmails'
 
+// Same shape check the create wizard's EMAIL_RE / the old AssociatedEmailsSection used.
+const EMAIL_RE = /^\S+@\S+\.\S+$/
+
 interface AddManagerModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -28,23 +31,30 @@ export function AddManagerModal({ open, onOpenChange, projectId, users, currentM
 
   const [managerId, setManagerId] = useState(String(currentManagerId))
   const [email, setEmail] = useState('')
+  const [touched, setTouched] = useState(false)
 
   useEffect(() => {
     if (open) {
       setManagerId(String(currentManagerId))
       const existing = associatedEmails.find((row) => row.user === currentManagerId)
       setEmail(existing?.email ?? '')
+      setTouched(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, currentManagerId])
 
+  const trimmedEmail = email.trim()
+  const emailInvalid = trimmedEmail.length > 0 && !EMAIL_RE.test(trimmedEmail)
+
   function handleSubmit() {
+    setTouched(true)
+    if (emailInvalid) return
+
     const newManagerId = Number(managerId)
     if (newManagerId !== currentManagerId) {
       assignPM.mutate(newManagerId)
     }
 
-    const trimmedEmail = email.trim()
     const existing = associatedEmails.find((row) => row.user === newManagerId)
     if (trimmedEmail && trimmedEmail !== existing?.email) {
       if (existing) removeEmail.mutate(existing.id)
@@ -89,6 +99,9 @@ export function AddManagerModal({ open, onOpenChange, projectId, users, currentM
                 placeholder="Project email"
                 className="h-11 rounded-sm border-border text-sm"
               />
+              {touched && emailInvalid && (
+                <p className="text-xs text-destructive">Enter a valid email</p>
+              )}
             </div>
           </div>
 

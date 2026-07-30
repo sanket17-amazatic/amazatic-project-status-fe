@@ -14,6 +14,9 @@ import {
   useRemoveAssociatedEmail,
 } from '@/hooks/useAssociatedEmails'
 
+// Same shape check the create wizard's EMAIL_RE / the old AssociatedEmailsSection used.
+const EMAIL_RE = /^\S+@\S+\.\S+$/
+
 interface AddTeamMembersModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -81,6 +84,7 @@ export function AddTeamMembersModal({ open, onOpenChange, projectId, users, memb
 
     for (const user of selectedUsers) {
       const trimmed = (emails[user.id] ?? '').trim()
+      if (trimmed && !EMAIL_RE.test(trimmed)) continue // invalid — leave existing row untouched
       const existing = associatedEmails.find((row) => row.user === user.id)
       if (trimmed && trimmed !== existing?.email) {
         if (existing) removeEmail.mutate(existing.id)
@@ -173,21 +177,33 @@ export function AddTeamMembersModal({ open, onOpenChange, projectId, users, memb
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="h-[54px] font-medium">{user.name || user.email}</TableCell>
-                        <TableCell className="h-[54px]">
-                          <Input
-                            value={emails[user.id] ?? ''}
-                            onChange={(event) =>
-                              setEmails((prev) => ({ ...prev, [user.id]: event.target.value }))
-                            }
-                            placeholder="Add project email"
-                            className="h-9 rounded-sm border-border text-sm"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {selectedUsers.map((user) => {
+                      const value = emails[user.id] ?? ''
+                      const invalid = value.trim().length > 0 && !EMAIL_RE.test(value.trim())
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell className="h-[54px] font-medium">
+                            {user.name || user.email}
+                          </TableCell>
+                          <TableCell className="h-[54px]">
+                            <Input
+                              value={value}
+                              onChange={(event) =>
+                                setEmails((prev) => ({ ...prev, [user.id]: event.target.value }))
+                              }
+                              placeholder="Add project email"
+                              className={cn(
+                                'h-9 rounded-sm border-border text-sm',
+                                invalid && 'border-destructive'
+                              )}
+                            />
+                            {invalid && (
+                              <p className="mt-1 text-xs text-destructive">Enter a valid email</p>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>
