@@ -10,10 +10,11 @@ import { TerminologySection } from './TerminologySection'
 
 /**
  * Dedicated settings page (replacing the old "Manage project" disclosure on
- * the detail page) — renders the existing, unmodified DetailsTab/TeamTab/
- * IntegrationsTab as standalone sections instead of tab-switcher content.
- * Each section already saves for real via its own mutations; there's no
- * page-level "Update Changes" button because there's nothing to batch —
+ * the detail page) — renders DetailsTab/TeamTab/IntegrationsTab as
+ * standalone sections instead of tab-switcher content, styled to match the
+ * reference design (ai-project-intelligence-frontend's project settings
+ * page). Each section already saves for real via its own mutations; there's
+ * no page-level "Update Changes" button because there's nothing to batch —
  * unlike the reference design, whose own Cancel/Update buttons don't call
  * any API at all.
  */
@@ -52,23 +53,23 @@ export default function ProjectSettingsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-foreground">Project Details</h2>
-        <DetailsTab project={project} />
-      </div>
-
-      <div className="border-t border-border pt-8">
-        <h2 className="mb-3 text-lg font-semibold text-foreground">Team</h2>
+    <div className="mx-auto flex max-w-[1147px] flex-col gap-8">
+      <div className="flex flex-col gap-4">
+        <p className="border-b border-[#e5e5e5] pb-3 text-base font-semibold text-black">
+          Project Details
+        </p>
         <TeamTab project={project} />
+        <div className="border-t border-border pt-6">
+          <DetailsTab project={project} />
+        </div>
       </div>
 
-      <div className="border-t border-border pt-8">
-        <TerminologySection />
-      </div>
+      <TerminologySection />
 
-      <div className="border-t border-border pt-8">
-        <h2 className="mb-3 text-lg font-semibold text-foreground">Connected Data Sources</h2>
+      <div className="flex flex-col gap-4">
+        <p className="border-b border-[#e5e5e5] pb-3 text-base font-semibold text-black">
+          Connected Data Sources
+        </p>
         <IntegrationsTab project={project} />
       </div>
     </div>

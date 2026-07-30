@@ -50,6 +50,11 @@ interface ProjectFormProps {
   defaultValues?: Partial<ProjectFormValues>
   onSubmit: (values: ProjectFormValues) => void
   pending: boolean
+  /** Settings-page edit mode renders name as its own auto-saving field next
+   * to Project Manager instead (see ProjectNameField) — the create wizard
+   * keeps it here. `name` still submits as part of this form's values
+   * either way (unaffected field, just not rendered). */
+  showNameField?: boolean
 }
 
 /**
@@ -58,7 +63,7 @@ interface ProjectFormProps {
  * FK is non-nullable, T-02-20); edit mode omits it — the Team tab (02-07)
  * owns PM reassignment.
  */
-export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectFormProps) {
+export function ProjectForm({ mode, defaultValues, onSubmit, pending, showNameField = true }: ProjectFormProps) {
   const { data: users, isLoading: usersLoading } = useUsers()
   const schema = mode === 'create' ? createSchema : editSchema
 
@@ -77,27 +82,29 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectF
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {showNameField && (
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <FormField
           control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel className="text-sm text-black">Description</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <Textarea {...field} className="rounded-sm border-border" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -109,9 +116,14 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectF
             name="start_date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Start date</FormLabel>
+                <FormLabel className="text-sm text-black">Start date</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} value={field.value ?? ''} />
+                  <Input
+                    type="date"
+                    {...field}
+                    value={field.value ?? ''}
+                    className="h-11 rounded-sm border-border text-sm"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -122,9 +134,14 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectF
             name="end_date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>End date</FormLabel>
+                <FormLabel className="text-sm text-black">End date</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} value={field.value ?? ''} />
+                  <Input
+                    type="date"
+                    {...field}
+                    value={field.value ?? ''}
+                    className="h-11 rounded-sm border-border text-sm"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -136,10 +153,10 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectF
           name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Status</FormLabel>
+              <FormLabel className="text-sm text-black">Status</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-11 w-full rounded-sm border-border text-sm">
                     <SelectValue />
                   </SelectTrigger>
                 </FormControl>
@@ -191,7 +208,11 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending }: ProjectF
           />
         )}
         <ShimmerButton mode="light" loading={pending}>
-          <Button type="submit" disabled={pending}>
+          <Button
+            type="submit"
+            disabled={pending}
+            className={mode === 'edit' ? 'rounded-sm bg-[#38c776] text-white hover:bg-[#38c776]/90' : undefined}
+          >
             {mode === 'create' ? 'Create Project' : 'Save changes'}
           </Button>
         </ShimmerButton>

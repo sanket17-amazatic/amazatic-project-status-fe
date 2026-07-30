@@ -40,9 +40,10 @@ export function DetailsTab({ project }: { project: Project }) {
     }
 
     return (
-      <div className="space-y-8 pt-4">
+      <div className="space-y-8">
         <ProjectForm
           mode="edit"
+          showNameField={false}
           defaultValues={{
             name: project.name,
             description: project.description,

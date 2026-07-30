@@ -28,6 +28,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { X } from 'lucide-react'
 import { ShimmerButton, ShimmerContentBlock } from 'shimmer-effects-react'
+import { ConnectedSourceCard } from './ConnectedSourceCard'
 
 function baseUrlError(value: string): string | null {
   if (!value) return 'Required'
@@ -163,15 +164,17 @@ export function IntegrationsTab({ project }: { project: Project }) {
 
   if (integrationsLoading) {
     return (
-      <div className="space-y-6 pt-4">
+      <div className="space-y-4">
         <ShimmerContentBlock mode="light" items={3} loading />
       </div>
     )
   }
 
   const jira = integrations.find((integration) => integration.type === 'jira')
+  // slack_client is intentionally not rendered here — the reference design
+  // shows a single "Slack" card, and slack_own is this project's primary
+  // workspace connection.
   const slackOwn = integrations.find((integration) => integration.type === 'slack_own')
-  const slackClient = integrations.find((integration) => integration.type === 'slack_client')
 
   function integrationRowActions(integration: ProjectIntegration | undefined) {
     if (!isManagement || !integration) return null
@@ -205,16 +208,14 @@ export function IntegrationsTab({ project }: { project: Project }) {
   }
 
   return (
-    <div className="space-y-6 pt-4">
-      <div className="rounded-md border border-border p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-medium text-foreground">Jira</h3>
-            <div className="mt-1">
-              <HealthBadge status={jira?.health_status ?? 'not_configured'} />
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
+    <div className="flex w-full flex-col gap-4">
+      <ConnectedSourceCard
+        icon="/icons/source-jira.svg"
+        label="Jira"
+        description="Sprint, issue & project activity tracking"
+        status={
+          <>
+            <HealthBadge status={jira?.health_status ?? 'not_configured'} />
             <Switch
               checked={jira?.enabled ?? false}
               disabled={!isManagement}
@@ -224,9 +225,9 @@ export function IntegrationsTab({ project }: { project: Project }) {
               }
             />
             {integrationRowActions(jira)}
-          </div>
-        </div>
-
+          </>
+        }
+      >
         {isManagement &&
           (jira?.id ? (
             <JiraConfigForm
@@ -245,32 +246,41 @@ export function IntegrationsTab({ project }: { project: Project }) {
               }
             />
           ) : (
-            <p className="mt-4 border-t border-border pt-4 text-xs text-slate-500">
+            <p className="border-t border-border pt-4 text-xs text-slate-500">
               Toggle Jira on above to configure its connection.
             </p>
           ))}
-      </div>
+      </ConnectedSourceCard>
 
-      {[
-        { type: slackOwn, label: 'Slack (own workspace)' },
-        { type: slackClient, label: 'Slack (client workspace)' },
-      ].map(({ type: integration, label }) => (
-        <div key={label} className="rounded-md border border-border p-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-foreground">{label}</h3>
-            <HealthBadge status={integration?.health_status ?? 'not_configured'} />
-          </div>
-          <p className="mt-2 text-sm text-slate-500">Not installed</p>
-          <p className="mt-1 text-xs text-slate-500">
-            No channels — channels are auto-discovered once the app is installed in the
-            workspace.
-          </p>
-          <ul className="mt-2 text-sm text-slate-500" aria-label="Channel list">
-            {/* Empty stub — real install-detection + channel fetch land in Phase 4/7. */}
-          </ul>
-          {integrationRowActions(integration)}
-        </div>
-      ))}
+      <ConnectedSourceCard
+        icon="/icons/source-slack.svg"
+        label="Slack"
+        description="Conversation & collaboration analysis"
+        status={
+          <>
+            <HealthBadge status={slackOwn?.health_status ?? 'not_configured'} />
+            {integrationRowActions(slackOwn)}
+          </>
+        }
+      >
+        <p className="text-sm text-slate-500">Not installed</p>
+        <p className="text-xs text-slate-500">
+          No channels — channels are auto-discovered once the app is installed in the workspace.
+        </p>
+      </ConnectedSourceCard>
+
+      <ConnectedSourceCard
+        icon="/icons/source-teams.svg"
+        label="Microsoft Teams"
+        description="Team collaboration and updates"
+        status={
+          <Button variant="outline" size="sm" disabled className="h-9 shrink-0 px-3 text-sm">
+            Connect
+          </Button>
+        }
+      >
+        <p className="text-xs text-slate-500">Coming soon — Microsoft Teams isn't wired up yet.</p>
+      </ConnectedSourceCard>
 
       <Dialog
         open={removeTargetId != null}

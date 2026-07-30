@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Project } from '@/hooks/useProjects'
 import { useAuthStore } from '@/stores/authStore'
 import { useUsers } from '@/hooks/useUsers'
-import { useProjectMembers, useAddMember, useRemoveMember, useAssignPM } from '@/hooks/useMemberships'
+import { useProjectMembers, useRemoveMember } from '@/hooks/useMemberships'
 import {
   useAssociatedEmails,
   useAddAssociatedEmail,
@@ -24,16 +24,43 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { X } from 'lucide-react'
 import { ShimmerButton, ShimmerContentBlock } from 'shimmer-effects-react'
+import { AddActionLink } from './AddActionLink'
+import { ProjectNameField } from './ProjectNameField'
+import { AddManagerModal } from './AddManagerModal'
+import { AddTeamMembersModal } from './AddTeamMembersModal'
 
 function emailError(value: string): string | null {
   if (!value) return 'Required'
   if (!/^\S+@\S+\.\S+$/.test(value)) return 'Enter a valid email'
   return null
+}
+
+/** Chip pill matching the reference design's team-member chip — reuses Badge the same way MemberTypeahead already does elsewhere in this repo, just with the reference's exact spacing/color values. */
+function MemberChip({ label, onRemove }: { label: string; onRemove?: () => void }) {
+  return (
+    <Badge
+      variant="secondary"
+      className="h-[30px] gap-2.5 rounded-full bg-[#f5f5f5] px-3 text-[13px] font-medium text-black hover:bg-[#f5f5f5]"
+    >
+      {label}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`Remove ${label}`}
+          className="text-slate-500 transition-colors hover:text-black"
+        >
+          <X className="size-[15px]" aria-hidden="true" />
+        </button>
+      )}
+    </Badge>
+  )
 }
 
 /**
@@ -204,7 +231,7 @@ function AssociatedEmailsSection({
   )
 }
 
-/** PROJ-02: management assigns PM + adds/removes members; both selects are fed by useUsers(). */
+/** PROJ-02: management assigns PM + adds/removes members; both modals are fed by useUsers(). */
 export function TeamTab({ project }: { project: Project }) {
   const role = useAuthStore((state) => state.user?.role)
   const currentUserId = useAuthStore((state) => state.user?.id)
@@ -218,38 +245,36 @@ export function TeamTab({ project }: { project: Project }) {
   const { data: members, isLoading: membersLoading } = useProjectMembers(projectId)
   // useUsers() 403s for non-management — only fetch/render it when it's usable.
   const { data: users, isLoading: usersLoading } = useUsers()
-  const addMember = useAddMember(projectId)
   const removeMember = useRemoveMember(projectId)
-  const assignPM = useAssignPM(projectId)
 
   const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null)
-  const [addUserId, setAddUserId] = useState<string>('')
+  const [managerModalOpen, setManagerModalOpen] = useState(false)
+  const [membersModalOpen, setMembersModalOpen] = useState(false)
 
   if (membersLoading || (isManagement && usersLoading)) {
     return (
-      <div className="space-y-6 pt-4">
+      <div className="space-y-6">
         <ShimmerContentBlock mode="light" items={4} loading />
       </div>
     )
   }
 
-  const memberUserIds = new Set(members.map((member) => member.user))
-  const availableUsers = users.filter((user) => !memberUserIds.has(user.id))
-
   if (!isManagement) {
     return (
-      <div className="space-y-4 pt-4 text-sm">
-        <div>
-          <span className="text-slate-500">Project manager: </span>
-          {project.project_manager_name}
+      <div className="space-y-4 text-sm">
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-black">Project Manager</p>
+          <div className="flex h-11 items-center rounded-sm border border-border px-3">
+            <p className="text-sm font-medium text-black">{project.project_manager_name}</p>
+          </div>
         </div>
-        <div>
-          <span className="text-slate-500">Members</span>
-          <ul className="mt-1 list-disc pl-5">
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-black">Team Members</p>
+          <div className="flex min-h-[132px] flex-wrap items-start gap-2 rounded-sm border border-border p-[13px]">
             {members.map((member) => (
-              <li key={member.id}>{member.user_name || member.user_email}</li>
+              <MemberChip key={member.id} label={member.user_name || member.user_email} />
             ))}
-          </ul>
+          </div>
         </div>
 
         {canManageEmails && (
@@ -262,79 +287,39 @@ export function TeamTab({ project }: { project: Project }) {
   }
 
   return (
-    <div className="space-y-6 pt-4">
-      <div>
-        <label className="mb-1 block text-sm font-medium text-foreground">Project manager</label>
-        <Select
-          value={String(project.project_manager)}
-          onValueChange={(value) => assignPM.mutate(Number(value))}
-        >
-          <SelectTrigger className="w-64">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {users.map((user) => (
-              <SelectItem key={user.id} value={String(user.id)}>
-                {user.name || user.email}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="space-y-6">
+      <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="flex w-full flex-col gap-4 lg:w-[566px] lg:shrink-0">
+          <ProjectNameField projectId={project.id} name={project.name} />
 
-      <div>
-        <h3 className="mb-2 text-sm font-medium text-foreground">Members</h3>
-        <ul className="space-y-2">
-          {members.map((member) => (
-            <li key={member.id} className="flex items-center justify-between text-sm">
-              <span>{member.user_name || member.user_email}</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Remove member"
-                    className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-destructive hover:bg-slate-100"
-                    onClick={() =>
-                      setRemoveTarget({ id: member.id, name: member.user_name || member.user_email })
-                    }
-                  >
-                    <X className="size-4" aria-hidden="true" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Remove member</TooltipContent>
-              </Tooltip>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="flex items-end gap-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-foreground">Add member</label>
-          <Select value={addUserId} onValueChange={setAddUserId}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Select a user" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableUsers.map((user) => (
-                <SelectItem key={user.id} value={String(user.id)}>
-                  {user.name || user.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-black">Project Manager</p>
+              <AddActionLink label="Add Manager" onClick={() => setManagerModalOpen(true)} />
+            </div>
+            <div className="flex h-11 items-center justify-center rounded-sm border border-border px-3">
+              <p className="text-sm font-medium text-black">{project.project_manager_name}</p>
+            </div>
+          </div>
         </div>
-        <ShimmerButton mode="light" loading={addMember.isPending}>
-          <Button
-            disabled={!addUserId || addMember.isPending}
-            onClick={() => {
-              addMember.mutate(Number(addUserId))
-              setAddUserId('')
-            }}
-          >
-            Add member
-          </Button>
-        </ShimmerButton>
+
+        <div className="flex w-full flex-col gap-2 lg:w-[565px] lg:shrink-0">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-black">Team Members</p>
+            <AddActionLink label="Add Team Members" onClick={() => setMembersModalOpen(true)} />
+          </div>
+          <div className="flex min-h-[132px] flex-wrap items-start gap-2 rounded-sm border border-border p-[13px]">
+            {members.map((member) => (
+              <MemberChip
+                key={member.id}
+                label={member.user_name || member.user_email}
+                onRemove={() =>
+                  setRemoveTarget({ id: member.id, name: member.user_name || member.user_email })
+                }
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {canManageEmails && (
@@ -342,6 +327,21 @@ export function TeamTab({ project }: { project: Project }) {
           <AssociatedEmailsSection project={project} members={members} />
         </div>
       )}
+
+      <AddManagerModal
+        open={managerModalOpen}
+        onOpenChange={setManagerModalOpen}
+        projectId={projectId}
+        users={users}
+        currentManagerId={project.project_manager}
+      />
+      <AddTeamMembersModal
+        open={membersModalOpen}
+        onOpenChange={setMembersModalOpen}
+        projectId={projectId}
+        users={users}
+        members={members}
+      />
 
       <Dialog open={removeTarget != null} onOpenChange={(open) => !open && setRemoveTarget(null)}>
         <DialogContent>
