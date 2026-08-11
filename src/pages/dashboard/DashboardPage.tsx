@@ -1,9 +1,8 @@
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { useProjects } from '@/hooks/useProjects'
+import { useProjects, useProjectSeverityCounts } from '@/hooks/useProjects'
 import { useIncidentStats } from '@/hooks/useIncidents'
 import { useAuthStore } from '@/stores/authStore'
-import { mapAiPriorityToSeverity } from '@/lib/severity'
 import { HeroBanner } from './HeroBanner'
 import { ProjectSummaryCard } from './ProjectSummaryCard'
 import { HeroBannerSkeleton, ProjectCardsSkeleton } from './DashboardSkeletons'
@@ -13,23 +12,23 @@ export default function DashboardPage() {
 
   const { data, isLoading, isError, refetch } = useProjects({})
   const { data: stats, isLoading: statsLoading } = useIncidentStats()
+  const {
+    data: severityCounts,
+    isLoading: severityCountsLoading,
+    isError: severityCountsError,
+  } = useProjectSeverityCounts()
 
-  const criticalProjectCount = (data?.results ?? []).filter(
-    (project) => mapAiPriorityToSeverity(project.severity) === 'critical'
-  ).length
-  const mediumRiskCount = (data?.results ?? []).filter(
-    (project) => mapAiPriorityToSeverity(project.severity) === 'medium'
-  ).length
+  const heroBannerLoading = statsLoading || severityCountsLoading
 
   return (
     <div className="mx-auto max-w-[1147px]">
-      {statsLoading && <HeroBannerSkeleton />}
+      {heroBannerLoading && <HeroBannerSkeleton />}
 
-      {!statsLoading && data && stats && (
+      {!heroBannerLoading && stats && severityCounts && !severityCountsError && (
         <HeroBanner
-          totalProjects={data.count}
-          criticalProjectCount={criticalProjectCount}
-          mediumRiskCount={mediumRiskCount}
+          totalProjects={severityCounts.totalProjects}
+          criticalProjectCount={severityCounts.criticalProjectCount}
+          mediumRiskCount={severityCounts.mediumRiskCount}
           totalIncidents={stats.open_incidents}
         />
       )}
