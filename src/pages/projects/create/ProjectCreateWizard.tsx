@@ -27,8 +27,8 @@ import { useCreateProject } from '@/hooks/useProjectMutations'
 import { MemberTypeahead } from './MemberTypeahead'
 import { ShimmerButton, ShimmerDiv } from 'shimmer-effects-react'
 
-// Same shape check TeamTab.tsx's AssociatedEmailsSection uses for the same
-// concept (accounts.AssociatedEmail) — kept in sync for a consistent
+// Same shape check the Add Team Members / Add Manager modals use for the
+// same concept (accounts.AssociatedEmail) — kept in sync for a consistent
 // validation story across the create wizard and the post-creation flow.
 const EMAIL_RE = /^\S+@\S+\.\S+$/
 

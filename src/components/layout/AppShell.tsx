@@ -12,11 +12,14 @@ const PAGE_TITLES: Record<string, string> = {
 
 function titleFor(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
+  if (/^\/projects\/\d+\/settings$/.test(pathname)) return 'Settings'
   if (pathname.startsWith('/projects/')) return 'Project Details'
   return 'Amazatic Project Status'
 }
 
 function backToFor(pathname: string): string | undefined {
+  const settingsMatch = pathname.match(/^(\/projects\/\d+)\/settings$/)
+  if (settingsMatch) return settingsMatch[1]
   if (/^\/projects\/\d+$/.test(pathname)) return '/projects'
   return undefined
 }

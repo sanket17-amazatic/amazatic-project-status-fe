@@ -17,10 +17,10 @@ interface PaginatedResponse<T> {
 }
 
 /**
- * Assignable-user list from GET /api/users/ (management-only, T-02-10).
- * Owned by this plan, reused by the 02-07 Team tab (PM-reassign + add-member
- * selects). A 403 for non-management surfaces as a query error the caller
- * can ignore/hide the picker on.
+ * Assignable-user list from GET /api/users/ (management or PM, T-02-10 —
+ * relaxed 2026-07-30 so a project's own PM can pick new team members from
+ * the Add Team Members modal, not just management). A 403 for a plain
+ * member surfaces as a query error the caller can ignore/hide the picker on.
  */
 export function useUsers() {
   const query = useQuery({
