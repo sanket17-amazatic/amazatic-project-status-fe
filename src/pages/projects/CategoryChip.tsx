@@ -1,7 +1,5 @@
-import type { MockIncidentCategory } from '@/lib/mockProjectBreakdown'
-
 /** White-icon-on-brand-circle variants, used only here (Dashboard's ProjectSummaryCard has its own plain-icon local map). */
-const CATEGORY_ICON_ON_BRAND: Record<MockIncidentCategory, string> = {
+const CATEGORY_ICON_ON_BRAND: Record<string, string> = {
   Communication: '/icons/category-communication-on-brand.svg',
   'Delivery Delays': '/icons/category-delivery-delays-on-brand.svg',
   'Cross team dependency': '/icons/category-cross-team-on-brand.svg',
@@ -11,8 +9,14 @@ const CATEGORY_ICON_ON_BRAND: Record<MockIncidentCategory, string> = {
   Blockers: '/icons/category-blockers-on-brand.svg',
 }
 
+// ai_categories is free-text from the AI service (backend enforces no fixed
+// allowlist, see the summary API's design doc) — a category the icon map
+// above doesn't recognize falls back to this one rather than rendering a
+// broken image, same "shares an icon" precedent as "Scope Change" above.
+const FALLBACK_ICON = '/icons/category-technical-debt-on-brand.svg'
+
 interface CategoryChipProps {
-  category: MockIncidentCategory
+  category: string
   count: number
 }
 
@@ -20,7 +24,12 @@ export function CategoryChip({ category, count }: CategoryChipProps) {
   return (
     <div className="flex items-center gap-2 whitespace-nowrap rounded-md bg-muted p-3">
       <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#38C776] p-1">
-        <img src={CATEGORY_ICON_ON_BRAND[category]} alt="" className="size-3.5" aria-hidden="true" />
+        <img
+          src={CATEGORY_ICON_ON_BRAND[category] ?? FALLBACK_ICON}
+          alt=""
+          className="size-3.5"
+          aria-hidden="true"
+        />
       </span>
       <p className="text-foreground">
         <span className="text-base font-semibold">{count}</span>{' '}
