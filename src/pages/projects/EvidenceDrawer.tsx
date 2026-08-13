@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { formatIncidentTimestamp } from '@/lib/format'
 import { mapAiPriorityToSeverity } from '@/lib/severity'
+import { SOURCE_META } from '@/lib/sources'
 import type { Incident } from '@/hooks/useIncidents'
 
 interface EvidenceDrawerProps {
@@ -35,7 +36,7 @@ export function EvidenceDrawer({ incident, jiraBaseUrl, open, onOpenChange }: Ev
 
   const hasMessage = Boolean(incident.message_text)
   const hasJira = incident.jira_ticket_keys.length > 0
-  const messageSourceLabel = incident.source === 'teams' ? 'Teams' : 'Slack'
+  const messageSourceLabel = SOURCE_META[incident.source].label
   const availableTabs = [
     ...(hasMessage ? (['message'] as const) : []),
     ...(hasJira ? (['jira'] as const) : []),

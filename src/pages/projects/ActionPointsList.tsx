@@ -1,4 +1,6 @@
 import { ShimmerContentBlock } from 'shimmer-effects-react'
+import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { useActionPoints } from '@/hooks/useActionPoints'
 
 interface ActionPointsListProps {
@@ -13,7 +15,7 @@ interface ActionPointsListProps {
  * 8 most urgent).
  */
 export function ActionPointsList({ projectId }: ActionPointsListProps) {
-  const { data, isLoading, isError } = useActionPoints(projectId)
+  const { data, isLoading, isError, refetch } = useActionPoints(projectId)
 
   if (isLoading) {
     return <ShimmerContentBlock mode="light" items={2} loading />
@@ -23,7 +25,14 @@ export function ActionPointsList({ projectId }: ActionPointsListProps) {
     return (
       <div className="flex w-full flex-col gap-2">
         <p className="border-b border-border pb-2 text-base font-semibold text-foreground">Action Points</p>
-        <p className="text-sm text-slate-500">Couldn't load action points.</p>
+        <Alert variant="destructive">
+          <AlertTitle>Couldn't load action points.</AlertTitle>
+          <AlertAction>
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+          </AlertAction>
+        </Alert>
       </div>
     )
   }
@@ -40,8 +49,11 @@ export function ActionPointsList({ projectId }: ActionPointsListProps) {
         <div className="flex flex-col gap-1 sm:flex-row sm:gap-3">
           {columns.map((column, columnIndex) => (
             <div key={columnIndex} className="flex flex-1 flex-col">
-              {column.map((point, index) => (
-                <div key={`${columnIndex}-${index}`} className="flex items-start gap-2.5 px-2.5 pt-1.5">
+              {column.map((point) => (
+                <div
+                  key={`${point.source}-${point.channel_name}-${point.user_name}-${point.created_at}`}
+                  className="flex items-start gap-2.5 px-2.5 pt-1.5"
+                >
                   <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-foreground" />
                   <p className="text-sm font-medium leading-5 text-foreground">{point.ai_summary}</p>
                 </div>

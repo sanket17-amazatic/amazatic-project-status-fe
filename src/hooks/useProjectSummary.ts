@@ -47,5 +47,6 @@ export function useProjectSummary(projectId: number, range: SummaryRange) {
     data: query.data,
     isLoading: query.isLoading,
     isError: query.isError,
+    refetch: query.refetch,
   }
 }

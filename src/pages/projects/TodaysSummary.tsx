@@ -13,17 +13,12 @@ import { SourceKpiCard } from './SourceKpiCard'
 import { ActionPointsList } from './ActionPointsList'
 import { CategoryChip } from './CategoryChip'
 import { useProjectSummary, type SummaryRange } from '@/hooks/useProjectSummary'
+import { SOURCE_META, SOURCE_ORDER } from '@/lib/sources'
 import type { Project } from '@/hooks/useProjects'
 
 interface TodaysSummaryProps {
   project: Project
 }
-
-const SOURCE_ORDER: { key: 'slack' | 'teams' | 'jira'; label: string; icon: string }[] = [
-  { key: 'slack', label: 'Slack', icon: '/icons/source-slack.svg' },
-  { key: 'teams', label: 'Microsoft Teams', icon: '/icons/source-teams.svg' },
-  { key: 'jira', label: 'Jira', icon: '/icons/source-jira.svg' },
-]
 
 const RANGE_OPTIONS: { value: SummaryRange; label: string }[] = [
   { value: 'today', label: 'Today' },
@@ -79,35 +74,44 @@ export function TodaysSummary({ project }: TodaysSummaryProps) {
       )}
 
       {!isLoading && !isError && data && (
-        <>
-          <div className="flex flex-col gap-4">
-            <p className="text-sm font-medium text-foreground">{data.narrative}</p>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm font-medium text-foreground">{data.narrative}</p>
 
-            <div className="flex flex-wrap items-stretch gap-3">
-              {SOURCE_ORDER.map(({ key, label, icon }) => (
-                <SourceKpiCard key={key} label={label} icon={icon} stat={data.sources[key]} />
-              ))}
-            </div>
+          <div className="flex flex-wrap items-stretch gap-3">
+            {SOURCE_ORDER.map((key) => (
+              <SourceKpiCard
+                key={key}
+                label={SOURCE_META[key].label}
+                icon={SOURCE_META[key].icon}
+                stat={data.sources[key]}
+              />
+            ))}
           </div>
-
-          <div className="flex flex-col gap-6">
-            <ActionPointsList projectId={project.id} />
-
-            <div className="flex flex-col gap-2">
-              <p className="text-base font-semibold text-foreground">Incidents by category</p>
-              {data.categories.length === 0 ? (
-                <p className="text-sm text-slate-500">No categorized incidents in this range.</p>
-              ) : (
-                <div className="flex flex-wrap items-start gap-2">
-                  {data.categories.map(({ category, count }) => (
-                    <CategoryChip key={category} category={category} count={count} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
+        </div>
       )}
+
+      <div className="flex flex-col gap-6">
+        {/* Independent of the summary query above (own endpoint, no range
+            filter) — must stay mounted across the summary's isLoading
+            transitions, or it unmounts/remounts and re-fetches for no
+            reason every time the range dropdown changes. */}
+        <ActionPointsList projectId={project.id} />
+
+        {!isLoading && !isError && data && (
+          <div className="flex flex-col gap-2">
+            <p className="text-base font-semibold text-foreground">Incidents by category</p>
+            {data.categories.length === 0 ? (
+              <p className="text-sm text-slate-500">No categorized incidents in this range.</p>
+            ) : (
+              <div className="flex flex-wrap items-start gap-2">
+                {data.categories.map(({ category, count }) => (
+                  <CategoryChip key={category} category={category} count={count} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

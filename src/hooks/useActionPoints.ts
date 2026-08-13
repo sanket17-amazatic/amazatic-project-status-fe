@@ -32,5 +32,6 @@ export function useActionPoints(projectId: number) {
     data: query.data,
     isLoading: query.isLoading,
     isError: query.isError,
+    refetch: query.refetch,
   }
 }

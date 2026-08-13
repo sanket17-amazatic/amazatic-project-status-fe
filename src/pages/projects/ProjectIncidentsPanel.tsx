@@ -23,6 +23,7 @@ import { Pagination } from '@/components/Pagination'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { formatIncidentTimestamp } from '@/lib/format'
 import { mapAiPriorityToSeverity, mapSeverityToAiPriority, type Severity } from '@/lib/severity'
+import { SOURCE_META, SOURCE_ORDER } from '@/lib/sources'
 import { useIncidents, type Incident, type IncidentSource } from '@/hooks/useIncidents'
 import { useIntegrations, readJiraConfig } from '@/hooks/useIntegrations'
 import { EvidenceDrawer } from './EvidenceDrawer'
@@ -36,19 +37,10 @@ const PRIORITY_OPTIONS: { value: Severity; label: string }[] = [
   { value: 'low', label: 'Low' },
 ]
 
-const SOURCE_OPTIONS: { value: IncidentSource; label: string }[] = [
-  { value: 'slack', label: 'Slack' },
-  { value: 'teams', label: 'Microsoft Teams' },
-  { value: 'jira', label: 'Jira' },
-]
-
-// "jira" here is never a real origin (see Incident.sources' docstring) —
-// this only ever renders alongside a slack/teams icon, never alone.
-const SOURCE_ICON: Record<IncidentSource, { icon: string; alt: string }> = {
-  slack: { icon: '/icons/source-slack.svg', alt: 'Slack' },
-  teams: { icon: '/icons/source-teams.svg', alt: 'Microsoft Teams' },
-  jira: { icon: '/icons/source-jira.svg', alt: 'Jira' },
-}
+const SOURCE_OPTIONS: { value: IncidentSource; label: string }[] = SOURCE_ORDER.map((value) => ({
+  value,
+  label: SOURCE_META[value].label,
+}))
 
 /**
  * Real API — `/api/insights/?project=<id>` (SlackMessageInsight, own-Slack
@@ -209,8 +201,8 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
                       {incident.sources.map((sourceKey) => (
                         <img
                           key={sourceKey}
-                          src={SOURCE_ICON[sourceKey].icon}
-                          alt={SOURCE_ICON[sourceKey].alt}
+                          src={SOURCE_META[sourceKey].icon}
+                          alt={SOURCE_META[sourceKey].label}
                           className="size-4 shrink-0"
                         />
                       ))}
