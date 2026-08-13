@@ -13,6 +13,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import {
@@ -332,7 +333,9 @@ export function ProjectCreateWizard() {
                   />
                   {memberIds.length > 0 && (
                     <div className="space-y-2">
-                      <FormLabel>Client workspace emails (optional)</FormLabel>
+                      {/* Section heading, not bound to one field — plain Label,
+                          not FormLabel (which needs a FormField context). */}
+                      <Label>Client workspace emails (optional)</Label>
                       {selectedMembers.map((user) => (
                         <div key={user.id} className="flex items-center gap-2">
                           <span className="w-1/3 shrink-0 truncate text-sm text-muted-foreground">
