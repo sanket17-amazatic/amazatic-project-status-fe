@@ -23,7 +23,8 @@ import { Pagination } from '@/components/Pagination'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { formatIncidentTimestamp } from '@/lib/format'
 import { mapAiPriorityToSeverity, mapSeverityToAiPriority, type Severity } from '@/lib/severity'
-import { useIncidents, type Incident } from '@/hooks/useIncidents'
+import { SOURCE_META, SOURCE_ORDER } from '@/lib/sources'
+import { useIncidents, type Incident, type IncidentSource } from '@/hooks/useIncidents'
 import { useIntegrations, readJiraConfig } from '@/hooks/useIntegrations'
 import { EvidenceDrawer } from './EvidenceDrawer'
 
@@ -36,6 +37,11 @@ const PRIORITY_OPTIONS: { value: Severity; label: string }[] = [
   { value: 'low', label: 'Low' },
 ]
 
+const SOURCE_OPTIONS: { value: IncidentSource; label: string }[] = SOURCE_ORDER.map((value) => ({
+  value,
+  label: SOURCE_META[value].label,
+}))
+
 /**
  * Real API — `/api/insights/?project=<id>` (SlackMessageInsight, own-Slack
  * monitoring + AI classification, already live). Search/priority filter and
@@ -44,6 +50,7 @@ const PRIORITY_OPTIONS: { value: Severity; label: string }[] = [
 export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
+  const [source, setSource] = useState<IncidentSource | ''>('')
   const [severity, setSeverity] = useState<Severity | ''>('')
   const [page, setPage] = useState(1)
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
@@ -66,11 +73,12 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
 
   useEffect(() => {
     setPage(1)
-  }, [search, severity])
+  }, [search, source, severity])
 
   const { data, isLoading, isError, refetch } = useIncidents({
     project: projectId,
     priority: mapSeverityToAiPriority(severity),
+    source,
     search,
     page,
   })
@@ -96,6 +104,22 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
               className="h-9 pl-8"
             />
           </div>
+          <Select
+            value={source || 'all'}
+            onValueChange={(value) => setSource(value === 'all' ? '' : (value as IncidentSource))}
+          >
+            <SelectTrigger className="w-40" aria-label="Filter by source">
+              <SelectValue placeholder="All Sources" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sources</SelectItem>
+              {SOURCE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select
             value={severity || 'all'}
             onValueChange={(value) => setSeverity(value === 'all' ? '' : (value as Severity))}
@@ -163,7 +187,10 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
                   }}
                   className="cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                 >
-                  <TableCell className="font-medium text-foreground">
+                  <TableCell
+                    className="max-w-[360px] truncate font-medium text-primary"
+                    title={incident.ai_summary}
+                  >
                     {incident.ai_summary}
                   </TableCell>
                   <TableCell>
@@ -171,10 +198,14 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <img src="/icons/source-slack.svg" alt="Slack" className="size-4 shrink-0" />
-                      {incident.jira_ticket_keys.length > 0 && (
-                        <img src="/icons/source-jira.svg" alt="Jira" className="size-4 shrink-0" />
-                      )}
+                      {incident.sources.map((sourceKey) => (
+                        <img
+                          key={sourceKey}
+                          src={SOURCE_META[sourceKey].icon}
+                          alt={SOURCE_META[sourceKey].label}
+                          className="size-4 shrink-0"
+                        />
+                      ))}
                     </div>
                   </TableCell>
                   <TableCell>{incident.evidence}</TableCell>

@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { formatIncidentTimestamp } from '@/lib/format'
 import { mapAiPriorityToSeverity } from '@/lib/severity'
+import { SOURCE_META } from '@/lib/sources'
 import type { Incident } from '@/hooks/useIncidents'
 
 interface EvidenceDrawerProps {
@@ -21,21 +22,23 @@ interface EvidenceDrawerProps {
 }
 
 /**
- * Real data only — no fabricated evidence content. Slack tab shows the
- * incident's own message_text/channel_name/created_at (SlackMessageInsight
- * is always Slack-sourced); Jira tab lists real jira_ticket_keys, linking
- * out to the project's real jira_base_url. No Email tab — no backing data,
- * same "hide empty tabs" pattern the reference design itself uses.
+ * Real data only — no fabricated evidence content. Message tab shows the
+ * incident's own message_text/channel_name/created_at, labeled by its real
+ * origin (Slack or Teams — see Incident.source); Jira tab lists real
+ * jira_ticket_keys, linking out to the project's real jira_base_url. No
+ * Email tab — no backing data, same "hide empty tabs" pattern the
+ * reference design itself uses.
  */
 export function EvidenceDrawer({ incident, jiraBaseUrl, open, onOpenChange }: EvidenceDrawerProps) {
-  const [tab, setTab] = useState<'slack' | 'jira'>('slack')
+  const [tab, setTab] = useState<'message' | 'jira'>('message')
 
   if (!incident) return null
 
-  const hasSlack = Boolean(incident.message_text)
+  const hasMessage = Boolean(incident.message_text)
   const hasJira = incident.jira_ticket_keys.length > 0
+  const messageSourceLabel = SOURCE_META[incident.source].label
   const availableTabs = [
-    ...(hasSlack ? (['slack'] as const) : []),
+    ...(hasMessage ? (['message'] as const) : []),
     ...(hasJira ? (['jira'] as const) : []),
   ]
   const activeTab = availableTabs.includes(tab) ? tab : availableTabs[0]
@@ -45,7 +48,7 @@ export function EvidenceDrawer({ incident, jiraBaseUrl, open, onOpenChange }: Ev
       open={open}
       onOpenChange={(next) => {
         onOpenChange(next)
-        if (!next) setTab('slack')
+        if (!next) setTab('message')
       }}
     >
       <DialogContent className="max-h-[85vh] w-[calc(100%-2rem)] max-w-[700px] overflow-y-auto sm:max-w-[700px]">
@@ -62,12 +65,12 @@ export function EvidenceDrawer({ incident, jiraBaseUrl, open, onOpenChange }: Ev
         ) : (
           <Tabs value={activeTab} onValueChange={(value) => setTab(value as typeof tab)} className="flex flex-col gap-3">
             <TabsList>
-              {hasSlack && <TabsTrigger value="slack">Slack Evidence</TabsTrigger>}
+              {hasMessage && <TabsTrigger value="message">{`${messageSourceLabel} Evidence`}</TabsTrigger>}
               {hasJira && <TabsTrigger value="jira">{`Jira Evidence (${incident.jira_ticket_keys.length})`}</TabsTrigger>}
             </TabsList>
 
-            {hasSlack && (
-              <TabsContent value="slack" className="flex flex-col gap-3">
+            {hasMessage && (
+              <TabsContent value="message" className="flex flex-col gap-3">
                 <div className="flex w-full flex-col gap-2 rounded-sm border border-border p-3">
                   <div className="flex flex-col gap-2 rounded-md bg-muted p-2">
                     <div className="flex items-center justify-between">

@@ -36,6 +36,12 @@ const CATEGORY_ICON: Record<MockIncidentCategory, string> = {
   Blockers: '/icons/category-blockers.svg',
 }
 
+// Mirrors CategoryChip's fallback (see src/pages/projects/CategoryChip.tsx):
+// once this card is wired to the real, free-text AI categories field
+// (useProjectSummary), a category outside the fixed union above must not
+// render a broken `<img src={undefined}>`.
+const FALLBACK_ICON = '/icons/category-technical-debt.svg'
+
 function chunk<T>(items: T[], size: number): T[][] {
   const groups: T[][] = []
   for (let i = 0; i < items.length; i += size) {
@@ -138,7 +144,12 @@ export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
             <div className="grid w-full grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3">
               {categories.map(({ category, count }) => (
                 <div key={category} className="flex min-w-0 items-center gap-2">
-                  <img src={CATEGORY_ICON[category]} alt="" className="size-3.5 shrink-0" aria-hidden="true" />
+                  <img
+                    src={CATEGORY_ICON[category] ?? FALLBACK_ICON}
+                    alt=""
+                    className="size-3.5 shrink-0"
+                    aria-hidden="true"
+                  />
                   <p className="min-w-0 text-sm text-foreground">
                     <span className="font-semibold">{count}</span> <span>{category}</span>
                   </p>

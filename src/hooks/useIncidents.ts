@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { getJson } from '@/lib/api'
 import type { AiPriority } from '@/lib/severity'
 
+export type IncidentSource = 'slack' | 'teams' | 'jira'
+
 export interface Incident {
   id: number
   project: number
@@ -15,6 +17,12 @@ export interface Incident {
   ai_reasoning: string
   evidence: number
   created_at: string
+  /** Real origin platform ("slack" | "teams") — never "jira" (see `sources`). */
+  source: 'slack' | 'teams'
+  /** Display-ready badge list, e.g. ["teams", "jira"] — origin plus "jira"
+   * whenever jira_ticket_keys is non-empty. Use this for the Source column
+   * icons instead of hardcoding one platform. */
+  sources: IncidentSource[]
 }
 
 interface PaginatedResponse<T> {
@@ -27,6 +35,7 @@ interface PaginatedResponse<T> {
 export interface UseIncidentsParams {
   project?: number | ''
   priority?: AiPriority | ''
+  source?: IncidentSource | ''
   search?: string
   page?: number
 }
@@ -38,13 +47,14 @@ export interface UseIncidentsParams {
  * search/priority/project filter + pagination, same convention as
  * useProjects/useOrgUsers.
  */
-export function useIncidents({ project, priority, search, page }: UseIncidentsParams) {
+export function useIncidents({ project, priority, source, search, page }: UseIncidentsParams) {
   const query = useQuery({
-    queryKey: ['incidents', { project, priority, search, page }],
+    queryKey: ['incidents', { project, priority, source, search, page }],
     queryFn: () => {
       const params = new URLSearchParams()
       if (project) params.set('project', String(project))
       if (priority) params.set('priority', priority)
+      if (source) params.set('source', source)
       if (search) params.set('search', search)
       if (page && page > 1) params.set('page', String(page))
       const qs = params.toString()

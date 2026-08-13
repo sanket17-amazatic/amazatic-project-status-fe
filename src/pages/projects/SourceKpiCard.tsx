@@ -1,14 +1,14 @@
-import type { MockSourceCounts } from '@/lib/mockProjectBreakdown'
+import type { SourceSeverityCounts } from '@/hooks/useProjectSummary'
 
 interface SourceKpiCardProps {
   label: string
   icon: string
-  stat: MockSourceCounts
+  stat: SourceSeverityCounts
 }
 
-/** Per-source Total/Critical/Medium/Low card — total is derived, not stored. */
+/** Per-source Total/Critical/Medium/Low card — total comes straight from the summary API. */
 export function SourceKpiCard({ label, icon, stat }: SourceKpiCardProps) {
-  const total = stat.critical + stat.medium + stat.low
+  const total = stat.total
 
   return (
     <div className="flex min-w-[150px] flex-1 flex-col gap-3 rounded-md bg-muted p-4 lg:flex-none lg:w-auto">
