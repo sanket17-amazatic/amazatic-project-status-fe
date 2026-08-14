@@ -157,8 +157,10 @@ function JiraConfigForm({
  * the Django admin's ProjectIntegrationAdminForm offers, mirrored here so
  * management doesn't need admin access to connect a project's Teams.
  * Client secret and the channel link are one-shot/write-only fields (never
- * round-tripped by the API) — cleared after every save attempt rather than
- * left showing stale typed text.
+ * round-tripped by the API) — cleared only once the save actually succeeds
+ * (via the `onSuccess` callback passed to `onSave`), not unconditionally
+ * right after firing the mutation, so a failed save (e.g. a malformed
+ * secret rejected server-side) doesn't also throw away what was typed.
  */
 function TeamsConfigForm({
   integration,
@@ -166,11 +168,14 @@ function TeamsConfigForm({
   saving,
 }: {
   integration: ProjectIntegration
-  onSave: (fields: {
-    teams_client_id: string
-    teams_client_secret?: string
-    teams_channel_link?: string
-  }) => void
+  onSave: (
+    fields: {
+      teams_client_id: string
+      teams_client_secret?: string
+      teams_channel_link?: string
+    },
+    callbacks: { onSuccess: () => void }
+  ) => void
   saving: boolean
 }) {
   const [clientId, setClientId] = useState(integration.teams_client_id ?? '')
@@ -185,13 +190,19 @@ function TeamsConfigForm({
   function handleSave() {
     setTouched(true)
     if (!clientId) return
-    onSave({
-      teams_client_id: clientId,
-      teams_client_secret: clientSecret || undefined,
-      teams_channel_link: channelLink || undefined,
-    })
-    setClientSecret('')
-    setChannelLink('')
+    onSave(
+      {
+        teams_client_id: clientId,
+        teams_client_secret: clientSecret || undefined,
+        teams_channel_link: channelLink || undefined,
+      },
+      {
+        onSuccess: () => {
+          setClientSecret('')
+          setChannelLink('')
+        },
+      }
+    )
   }
 
   return (
@@ -255,15 +266,9 @@ function TeamsConfigForm({
  * always has its own row even with zero channels, so this renders as soon
  * as the integration row exists, independent of whether team id is set yet.
  */
-function TeamsChannelsSection({
-  integrationId,
-  projectId,
-}: {
-  integrationId: number
-  projectId: string
-}) {
+function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
   const { data: channels, isLoading } = useTeamsChannels(integrationId)
-  const addChannel = useAddTeamsChannel(integrationId, projectId)
+  const addChannel = useAddTeamsChannel(integrationId)
   const updateChannel = useUpdateTeamsChannel(integrationId)
   const removeChannel = useRemoveTeamsChannel(integrationId)
   const [input, setInput] = useState('')
@@ -348,13 +353,22 @@ export function IntegrationsTab({ project }: { project: Project }) {
   const projectId = String(project.id)
 
   const { data: integrations, isLoading: integrationsLoading } = useIntegrations(projectId)
-  const upsertIntegration = useUpsertIntegration(projectId)
   const removeIntegration = useRemoveIntegration(projectId)
-  const checkHealth = useCheckHealth(projectId)
-  // Separate instance so the row's standalone "Check health" button doesn't
-  // light up the config form's save/spinner state, and vice versa (PR #2 review).
-  const configHealthCheck = useCheckHealth(projectId)
   const [removeTargetId, setRemoveTargetId] = useState<number | null>(null)
+
+  // One upsert + one row-action check-health + one config-save check-health
+  // instance PER integration type — sharing a single instance across cards
+  // (or across a card's own row-action vs. config-form buttons) makes
+  // saving/probing one integration light up an unrelated button's loading/
+  // disabled state too (PR #2 review, then PR #10 review for the
+  // cross-card case once Teams grew its own config form).
+  const jiraUpsert = useUpsertIntegration(projectId)
+  const jiraCheckHealth = useCheckHealth(projectId)
+  const jiraConfigHealthCheck = useCheckHealth(projectId)
+  const slackCheckHealth = useCheckHealth(projectId)
+  const teamsUpsert = useUpsertIntegration(projectId)
+  const teamsCheckHealth = useCheckHealth(projectId)
+  const teamsConfigHealthCheck = useCheckHealth(projectId)
 
   if (integrationsLoading) {
     return (
@@ -371,7 +385,10 @@ export function IntegrationsTab({ project }: { project: Project }) {
   const slackOwn = integrations.find((integration) => integration.type === 'slack_own')
   const teams = integrations.find((integration) => integration.type === 'teams')
 
-  function integrationRowActions(integration: ProjectIntegration | undefined) {
+  function integrationRowActions(
+    integration: ProjectIntegration | undefined,
+    checkHealth: ReturnType<typeof useCheckHealth>
+  ) {
     if (!isManagement || !integration) return null
     return (
       <div className="flex items-center gap-2">
@@ -416,10 +433,10 @@ export function IntegrationsTab({ project }: { project: Project }) {
               disabled={!isManagement}
               aria-label="Toggle Jira integration"
               onCheckedChange={(checked) =>
-                upsertIntegration.mutate({ id: jira?.id, type: 'jira', enabled: checked })
+                jiraUpsert.mutate({ id: jira?.id, type: 'jira', enabled: checked })
               }
             />
-            {integrationRowActions(jira)}
+            {integrationRowActions(jira, jiraCheckHealth)}
           </>
         }
       >
@@ -427,14 +444,14 @@ export function IntegrationsTab({ project }: { project: Project }) {
           (jira?.id ? (
             <JiraConfigForm
               integration={jira}
-              saving={upsertIntegration.isPending || configHealthCheck.isPending}
+              saving={jiraUpsert.isPending || jiraConfigHealthCheck.isPending}
               onSave={(config) =>
-                upsertIntegration.mutate(
+                jiraUpsert.mutate(
                   { id: jira.id, type: 'jira', config },
                   {
                     onSuccess: () => {
                       toast.success('Jira config saved')
-                      configHealthCheck.mutate(jira.id)
+                      jiraConfigHealthCheck.mutate(jira.id)
                     },
                   }
                 )
@@ -454,7 +471,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
         status={
           <>
             <HealthBadge status={slackOwn?.health_status ?? 'not_configured'} />
-            {integrationRowActions(slackOwn)}
+            {integrationRowActions(slackOwn, slackCheckHealth)}
           </>
         }
       >
@@ -488,10 +505,10 @@ export function IntegrationsTab({ project }: { project: Project }) {
               disabled={!isManagement}
               aria-label="Toggle Microsoft Teams integration"
               onCheckedChange={(checked) =>
-                upsertIntegration.mutate({ id: teams?.id, type: 'teams', enabled: checked })
+                teamsUpsert.mutate({ id: teams?.id, type: 'teams', enabled: checked })
               }
             />
-            {integrationRowActions(teams)}
+            {integrationRowActions(teams, teamsCheckHealth)}
           </>
         }
       >
@@ -500,20 +517,21 @@ export function IntegrationsTab({ project }: { project: Project }) {
             <>
               <TeamsConfigForm
                 integration={teams}
-                saving={upsertIntegration.isPending || configHealthCheck.isPending}
-                onSave={(fields) =>
-                  upsertIntegration.mutate(
+                saving={teamsUpsert.isPending || teamsConfigHealthCheck.isPending}
+                onSave={(fields, { onSuccess }) =>
+                  teamsUpsert.mutate(
                     { id: teams.id, type: 'teams', ...fields },
                     {
                       onSuccess: () => {
                         toast.success('Teams config saved')
-                        configHealthCheck.mutate(teams.id)
+                        teamsConfigHealthCheck.mutate(teams.id)
+                        onSuccess()
                       },
                     }
                   )
                 }
               />
-              <TeamsChannelsSection integrationId={teams.id} projectId={projectId} />
+              <TeamsChannelsSection integrationId={teams.id} />
             </>
           ) : (
             <p className="border-t border-border pt-4 text-xs text-slate-500">

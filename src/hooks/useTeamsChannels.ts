@@ -29,21 +29,23 @@ export function useTeamsChannels(integrationId: number | undefined) {
 /**
  * `input` is either a pasted "Get link to channel" URL (sent as
  * `teams_channel_link`, parsed server-side) or a raw channel id — the form
- * decides which by checking for a URL scheme, same "paste or type" UX as
- * the Django admin's TeamsChannelInlineForm.
+ * decides which by checking for a URL scheme (case-insensitive — a pasted
+ * `HTTPS://...` link is still a link), same "paste or type" UX as the
+ * Django admin's TeamsChannelInlineForm.
  */
-export function useAddTeamsChannel(integrationId: number, projectId: string) {
+export function useAddTeamsChannel(integrationId: number) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (input: string) => {
-      const body = input.trim().startsWith('http')
-        ? { teams_channel_link: input.trim() }
-        : { channel_id: input.trim() }
+      const trimmed = input.trim()
+      const body = trimmed.toLowerCase().startsWith('http')
+        ? { teams_channel_link: trimmed }
+        : { channel_id: trimmed }
       return postJson<TeamsChannel>(`/api/integrations/${integrationId}/teams-channels/`, body)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams-channels', integrationId] })
-      queryClient.invalidateQueries({ queryKey: ['integrations', projectId] })
+      toast.success('Channel added')
     },
     onError: (error: unknown) => {
       toast.error(apiErrorDetail(error) ?? 'Could not add channel')
@@ -71,6 +73,7 @@ export function useRemoveTeamsChannel(integrationId: number) {
     mutationFn: (id: number) => del(`/api/teams-channels/${id}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams-channels', integrationId] })
+      toast.success('Channel removed')
     },
     onError: (error: unknown) => {
       toast.error(apiErrorDetail(error) ?? 'Could not remove channel')
