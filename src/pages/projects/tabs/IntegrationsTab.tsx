@@ -16,6 +16,7 @@ import {
   useAddTeamsChannel,
   useUpdateTeamsChannel,
   useRemoveTeamsChannel,
+  type TeamsChannel,
 } from '@/hooks/useTeamsChannels'
 import { HealthBadge } from '@/components/HealthBadge'
 import { Switch } from '@/components/ui/switch'
@@ -186,10 +187,16 @@ function TeamsConfigForm({
   const dirty =
     clientId !== (integration.teams_client_id ?? '') || clientSecret !== '' || channelLink !== ''
   const clientIdInvalid = touched && !clientId
+  // No existing client id means this connection has never been configured
+  // — there's no previously-saved secret for a blank field to fall back
+  // to, so a secret must be entered now rather than silently half-
+  // configuring the integration (mirrors the placeholder text below).
+  const secretRequired = !integration.teams_client_id
+  const clientSecretInvalid = touched && secretRequired && !clientSecret
 
   function handleSave() {
     setTouched(true)
-    if (!clientId) return
+    if (!clientId || (secretRequired && !clientSecret)) return
     onSave(
       {
         teams_client_id: clientId,
@@ -232,6 +239,7 @@ function TeamsConfigForm({
             onChange={(event) => setClientSecret(event.target.value)}
             className="mt-1.5"
           />
+          {clientSecretInvalid && <p className="mt-1 text-xs text-destructive">Required</p>}
         </div>
       </div>
       <div>
@@ -251,7 +259,12 @@ function TeamsConfigForm({
       </div>
       <div className="flex justify-end">
         <ShimmerButton mode="light" loading={saving}>
-          <Button type="button" size="sm" disabled={!dirty || saving} onClick={handleSave}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!dirty || saving || (touched && secretRequired && !clientSecret)}
+            onClick={handleSave}
+          >
             Save Teams config
           </Button>
         </ShimmerButton>
@@ -272,6 +285,11 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
   const updateChannel = useUpdateTeamsChannel(integrationId)
   const removeChannel = useRemoveTeamsChannel(integrationId)
   const [input, setInput] = useState('')
+  // Confirm before deleting, same as integration removal below — the X
+  // sits right next to the enable Switch, and unlike that toggle this
+  // action isn't reversible from this panel (the channel has to be
+  // re-added by link/id from scratch).
+  const [removeTarget, setRemoveTarget] = useState<TeamsChannel | null>(null)
 
   function handleAdd() {
     if (!input.trim()) return
@@ -308,7 +326,7 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
                   type="button"
                   aria-label="Remove channel"
                   className="flex size-7 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-slate-200"
-                  onClick={() => removeChannel.mutate(channel.id)}
+                  onClick={() => setRemoveTarget(channel)}
                 >
                   <X className="size-3.5" aria-hidden="true" />
                 </button>
@@ -336,6 +354,34 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
           </Button>
         </ShimmerButton>
       </div>
+
+      <Dialog open={removeTarget != null} onOpenChange={(open) => !open && setRemoveTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove this channel?</DialogTitle>
+            <DialogDescription>
+              {(removeTarget?.channel_name || removeTarget?.channel_id) ?? 'This channel'} will
+              stop being monitored. You can add it back later by link or channel id.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (removeTarget) {
+                  removeChannel.mutate(removeTarget.id)
+                  setRemoveTarget(null)
+                }
+              }}
+            >
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -430,7 +476,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
             <HealthBadge status={jira?.health_status ?? 'not_configured'} />
             <Switch
               checked={jira?.enabled ?? false}
-              disabled={!isManagement}
+              disabled={!isManagement || jiraUpsert.isPending}
               aria-label="Toggle Jira integration"
               onCheckedChange={(checked) =>
                 jiraUpsert.mutate({ id: jira?.id, type: 'jira', enabled: checked })
@@ -502,7 +548,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
             <HealthBadge status={teams?.health_status ?? 'not_configured'} />
             <Switch
               checked={teams?.enabled ?? false}
-              disabled={!isManagement}
+              disabled={!isManagement || teamsUpsert.isPending}
               aria-label="Toggle Microsoft Teams integration"
               onCheckedChange={(checked) =>
                 teamsUpsert.mutate({ id: teams?.id, type: 'teams', enabled: checked })

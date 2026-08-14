@@ -17,11 +17,10 @@ export interface TeamsChannel {
  * (Azure AD app/team) can have many channels, so these are a nested list,
  * not part of the integration payload itself.
  */
-export function useTeamsChannels(integrationId: number | undefined) {
+export function useTeamsChannels(integrationId: number) {
   const query = useQuery({
     queryKey: ['teams-channels', integrationId],
     queryFn: () => getJson<TeamsChannel[]>(`/api/integrations/${integrationId}/teams-channels/`),
-    enabled: integrationId !== undefined,
   })
   return { data: query.data ?? [], isLoading: query.isLoading }
 }
@@ -60,6 +59,7 @@ export function useUpdateTeamsChannel(integrationId: number) {
       patchJson<TeamsChannel>(`/api/teams-channels/${id}/`, { enabled }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams-channels', integrationId] })
+      toast.success('Channel updated')
     },
     onError: (error: unknown) => {
       toast.error(apiErrorDetail(error) ?? 'Could not update channel')
