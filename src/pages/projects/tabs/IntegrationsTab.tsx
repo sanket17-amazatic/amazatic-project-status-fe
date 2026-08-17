@@ -11,6 +11,13 @@ import {
   type ProjectIntegration,
   type JiraConfig,
 } from '@/hooks/useIntegrations'
+import {
+  useTeamsChannels,
+  useAddTeamsChannel,
+  useUpdateTeamsChannel,
+  useRemoveTeamsChannel,
+  type TeamsChannel,
+} from '@/hooks/useTeamsChannels'
 import { HealthBadge } from '@/components/HealthBadge'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -28,6 +35,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { X } from 'lucide-react'
 import { ShimmerButton, ShimmerContentBlock } from 'shimmer-effects-react'
+import { formatRelativeTime } from '@/lib/format'
 import { ConnectedSourceCard } from './ConnectedSourceCard'
 
 function baseUrlError(value: string): string | null {
@@ -144,9 +152,246 @@ function JiraConfigForm({
 }
 
 /**
- * PROJ-03/ADMIN-02: Jira on/off toggle (D-08, no token entry — Phase 3
- * owns that); Slack is a DISPLAY SHELL ONLY (D-07 — no manual channel entry,
- * channels are auto-discovered once the app is installed in Phase 4/7).
+ * Azure AD app registration (client id/secret) plus a "Get link to
+ * channel" URL paste that fills team id/tenant id server-side (see
+ * teams_integration.services.parse_teams_channel_link) — same convenience
+ * the Django admin's ProjectIntegrationAdminForm offers, mirrored here so
+ * management doesn't need admin access to connect a project's Teams.
+ * Client secret and the channel link are one-shot/write-only fields (never
+ * round-tripped by the API) — cleared only once the save actually succeeds
+ * (via the `onSuccess` callback passed to `onSave`), not unconditionally
+ * right after firing the mutation, so a failed save (e.g. a malformed
+ * secret rejected server-side) doesn't also throw away what was typed.
+ */
+function TeamsConfigForm({
+  integration,
+  onSave,
+  saving,
+}: {
+  integration: ProjectIntegration
+  onSave: (
+    fields: {
+      teams_client_id: string
+      teams_client_secret?: string
+      teams_channel_link?: string
+    },
+    callbacks: { onSuccess: () => void }
+  ) => void
+  saving: boolean
+}) {
+  const [clientId, setClientId] = useState(integration.teams_client_id ?? '')
+  const [clientSecret, setClientSecret] = useState('')
+  const [channelLink, setChannelLink] = useState('')
+  const [touched, setTouched] = useState(false)
+
+  const dirty =
+    clientId !== (integration.teams_client_id ?? '') || clientSecret !== '' || channelLink !== ''
+  const clientIdInvalid = touched && !clientId
+  // No existing client id means this connection has never been configured
+  // — there's no previously-saved secret for a blank field to fall back
+  // to, so a secret must be entered now rather than silently half-
+  // configuring the integration (mirrors the placeholder text below).
+  const secretRequired = !integration.teams_client_id
+  const clientSecretInvalid = touched && secretRequired && !clientSecret
+
+  function handleSave() {
+    setTouched(true)
+    if (!clientId || (secretRequired && !clientSecret)) return
+    onSave(
+      {
+        teams_client_id: clientId,
+        teams_client_secret: clientSecret || undefined,
+        teams_channel_link: channelLink || undefined,
+      },
+      {
+        onSuccess: () => {
+          setClientSecret('')
+          setChannelLink('')
+        },
+      }
+    )
+  }
+
+  return (
+    <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <Label htmlFor={`teams-client-id-${integration.id}`}>Client ID</Label>
+          <Input
+            id={`teams-client-id-${integration.id}`}
+            placeholder="Azure AD application (client) ID"
+            value={clientId}
+            onChange={(event) => setClientId(event.target.value)}
+            className="mt-1.5"
+          />
+          {clientIdInvalid && <p className="mt-1 text-xs text-destructive">Required</p>}
+        </div>
+        <div>
+          <Label htmlFor={`teams-client-secret-${integration.id}`}>Client secret</Label>
+          <Input
+            id={`teams-client-secret-${integration.id}`}
+            type="password"
+            autoComplete="off"
+            placeholder={
+              integration.teams_client_id ? 'Leave blank to keep existing' : 'Azure AD client secret'
+            }
+            value={clientSecret}
+            onChange={(event) => setClientSecret(event.target.value)}
+            className="mt-1.5"
+          />
+          {clientSecretInvalid && <p className="mt-1 text-xs text-destructive">Required</p>}
+        </div>
+      </div>
+      <div>
+        <Label htmlFor={`teams-channel-link-${integration.id}`}>Team channel link</Label>
+        <Input
+          id={`teams-channel-link-${integration.id}`}
+          placeholder='Paste a channel’s "Get link to channel" URL to set the team'
+          value={channelLink}
+          onChange={(event) => setChannelLink(event.target.value)}
+          className="mt-1.5"
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          {integration.teams_team_id
+            ? `Connected to team ${integration.teams_team_id}`
+            : 'Not connected to a team yet — paste a channel link above.'}
+        </p>
+      </div>
+      <div className="flex justify-end">
+        <ShimmerButton mode="light" loading={saving}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!dirty || saving || (touched && secretRequired && !clientSecret)}
+            onClick={handleSave}
+          >
+            Save Teams config
+          </Button>
+        </ShimmerButton>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * List/add/enable-toggle/remove for the channels monitored under one Teams
+ * connection (see ProjectIntegrationViewSet.teams_channels) — a connection
+ * always has its own row even with zero channels, so this renders as soon
+ * as the integration row exists, independent of whether team id is set yet.
+ */
+function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
+  const { data: channels, isLoading } = useTeamsChannels(integrationId)
+  const addChannel = useAddTeamsChannel(integrationId)
+  const updateChannel = useUpdateTeamsChannel(integrationId)
+  const removeChannel = useRemoveTeamsChannel(integrationId)
+  const [input, setInput] = useState('')
+  // Confirm before deleting, same as integration removal below — the X
+  // sits right next to the enable Switch, and unlike that toggle this
+  // action isn't reversible from this panel (the channel has to be
+  // re-added by link/id from scratch).
+  const [removeTarget, setRemoveTarget] = useState<TeamsChannel | null>(null)
+
+  function handleAdd() {
+    if (!input.trim()) return
+    addChannel.mutate(input, { onSuccess: () => setInput('') })
+  }
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-border pt-4">
+      <p className="text-xs font-semibold text-slate-500">Monitored channels</p>
+
+      {isLoading ? (
+        <ShimmerContentBlock mode="light" items={1} loading />
+      ) : channels.length === 0 ? (
+        <p className="text-xs text-slate-500">No channels yet — add one below.</p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {channels.map((channel) => (
+            <div
+              key={channel.id}
+              className="flex items-center justify-between gap-2 rounded-md bg-muted px-2.5 py-1.5"
+            >
+              <span className="truncate text-sm text-foreground">
+                {channel.channel_name || channel.channel_id}
+              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <Switch
+                  checked={channel.enabled}
+                  aria-label={`Toggle ${channel.channel_name || channel.channel_id}`}
+                  onCheckedChange={(checked) =>
+                    updateChannel.mutate({ id: channel.id, enabled: checked })
+                  }
+                />
+                <button
+                  type="button"
+                  aria-label="Remove channel"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-slate-200"
+                  onClick={() => setRemoveTarget(channel)}
+                >
+                  <X className="size-3.5" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Input
+          placeholder="Paste channel link or enter channel id"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          className="flex-1"
+        />
+        <ShimmerButton mode="light" loading={addChannel.isPending}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!input.trim() || addChannel.isPending}
+            onClick={handleAdd}
+          >
+            Add
+          </Button>
+        </ShimmerButton>
+      </div>
+
+      <Dialog open={removeTarget != null} onOpenChange={(open) => !open && setRemoveTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove this channel?</DialogTitle>
+            <DialogDescription>
+              {(removeTarget?.channel_name || removeTarget?.channel_id) ?? 'This channel'} will
+              stop being monitored. You can add it back later by link or channel id.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (removeTarget) {
+                  removeChannel.mutate(removeTarget.id)
+                  setRemoveTarget(null)
+                }
+              }}
+            >
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+/**
+ * PROJ-03/ADMIN-02: Jira and Teams both get an on/off toggle plus an inline
+ * config form (D-08 — Jira's token stays wizard-only, everything else is
+ * editable here); Slack is a DISPLAY SHELL ONLY (D-07 — no manual channel
+ * entry, channels are auto-discovered once the app is installed in
+ * Phase 4/7).
  */
 export function IntegrationsTab({ project }: { project: Project }) {
   const role = useAuthStore((state) => state.user?.role)
@@ -154,13 +399,22 @@ export function IntegrationsTab({ project }: { project: Project }) {
   const projectId = String(project.id)
 
   const { data: integrations, isLoading: integrationsLoading } = useIntegrations(projectId)
-  const upsertIntegration = useUpsertIntegration(projectId)
   const removeIntegration = useRemoveIntegration(projectId)
-  const checkHealth = useCheckHealth(projectId)
-  // Separate instance so the row's standalone "Check health" button doesn't
-  // light up the config form's save/spinner state, and vice versa (PR #2 review).
-  const configHealthCheck = useCheckHealth(projectId)
   const [removeTargetId, setRemoveTargetId] = useState<number | null>(null)
+
+  // One upsert + one row-action check-health + one config-save check-health
+  // instance PER integration type — sharing a single instance across cards
+  // (or across a card's own row-action vs. config-form buttons) makes
+  // saving/probing one integration light up an unrelated button's loading/
+  // disabled state too (PR #2 review, then PR #10 review for the
+  // cross-card case once Teams grew its own config form).
+  const jiraUpsert = useUpsertIntegration(projectId)
+  const jiraCheckHealth = useCheckHealth(projectId)
+  const jiraConfigHealthCheck = useCheckHealth(projectId)
+  const slackCheckHealth = useCheckHealth(projectId)
+  const teamsUpsert = useUpsertIntegration(projectId)
+  const teamsCheckHealth = useCheckHealth(projectId)
+  const teamsConfigHealthCheck = useCheckHealth(projectId)
 
   if (integrationsLoading) {
     return (
@@ -175,8 +429,12 @@ export function IntegrationsTab({ project }: { project: Project }) {
   // shows a single "Slack" card, and slack_own is this project's primary
   // workspace connection.
   const slackOwn = integrations.find((integration) => integration.type === 'slack_own')
+  const teams = integrations.find((integration) => integration.type === 'teams')
 
-  function integrationRowActions(integration: ProjectIntegration | undefined) {
+  function integrationRowActions(
+    integration: ProjectIntegration | undefined,
+    checkHealth: ReturnType<typeof useCheckHealth>
+  ) {
     if (!isManagement || !integration) return null
     return (
       <div className="flex items-center gap-2">
@@ -208,7 +466,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4">
+    <div className="grid w-full grid-cols-1 items-start gap-4 lg:grid-cols-2">
       <ConnectedSourceCard
         icon="/icons/source-jira.svg"
         label="Jira"
@@ -218,13 +476,13 @@ export function IntegrationsTab({ project }: { project: Project }) {
             <HealthBadge status={jira?.health_status ?? 'not_configured'} />
             <Switch
               checked={jira?.enabled ?? false}
-              disabled={!isManagement}
+              disabled={!isManagement || jiraUpsert.isPending}
               aria-label="Toggle Jira integration"
               onCheckedChange={(checked) =>
-                upsertIntegration.mutate({ id: jira?.id, type: 'jira', enabled: checked })
+                jiraUpsert.mutate({ id: jira?.id, type: 'jira', enabled: checked })
               }
             />
-            {integrationRowActions(jira)}
+            {integrationRowActions(jira, jiraCheckHealth)}
           </>
         }
       >
@@ -232,14 +490,14 @@ export function IntegrationsTab({ project }: { project: Project }) {
           (jira?.id ? (
             <JiraConfigForm
               integration={jira}
-              saving={upsertIntegration.isPending || configHealthCheck.isPending}
+              saving={jiraUpsert.isPending || jiraConfigHealthCheck.isPending}
               onSave={(config) =>
-                upsertIntegration.mutate(
+                jiraUpsert.mutate(
                   { id: jira.id, type: 'jira', config },
                   {
                     onSuccess: () => {
                       toast.success('Jira config saved')
-                      configHealthCheck.mutate(jira.id)
+                      jiraConfigHealthCheck.mutate(jira.id)
                     },
                   }
                 )
@@ -259,14 +517,26 @@ export function IntegrationsTab({ project }: { project: Project }) {
         status={
           <>
             <HealthBadge status={slackOwn?.health_status ?? 'not_configured'} />
-            {integrationRowActions(slackOwn)}
+            {integrationRowActions(slackOwn, slackCheckHealth)}
           </>
         }
       >
-        <p className="text-sm text-slate-500">Not installed</p>
-        <p className="text-xs text-slate-500">
-          No channels — channels are auto-discovered once the app is installed in the workspace.
-        </p>
+        {slackOwn?.slack_installed_at ? (
+          <p className="text-sm text-slate-600">
+            Installed in{' '}
+            <span className="font-medium text-foreground">
+              {slackOwn.slack_team_name || 'the Slack workspace'}
+            </span>{' '}
+            &middot; {formatRelativeTime(slackOwn.slack_installed_at)}
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-slate-500">Not installed</p>
+            <p className="text-xs text-slate-500">
+              No channels — channels are auto-discovered once the app is installed in the workspace.
+            </p>
+          </>
+        )}
       </ConnectedSourceCard>
 
       <ConnectedSourceCard
@@ -274,12 +544,56 @@ export function IntegrationsTab({ project }: { project: Project }) {
         label="Microsoft Teams"
         description="Team collaboration and updates"
         status={
-          <Button variant="outline" size="sm" disabled className="h-9 shrink-0 px-3 text-sm">
-            Connect
-          </Button>
+          <>
+            <HealthBadge status={teams?.health_status ?? 'not_configured'} />
+            <Switch
+              checked={teams?.enabled ?? false}
+              disabled={!isManagement || teamsUpsert.isPending}
+              aria-label="Toggle Microsoft Teams integration"
+              onCheckedChange={(checked) =>
+                teamsUpsert.mutate({ id: teams?.id, type: 'teams', enabled: checked })
+              }
+            />
+            {integrationRowActions(teams, teamsCheckHealth)}
+          </>
         }
       >
-        <p className="text-xs text-slate-500">Coming soon — Microsoft Teams isn't wired up yet.</p>
+        {isManagement ? (
+          teams?.id ? (
+            <>
+              <TeamsConfigForm
+                integration={teams}
+                saving={teamsUpsert.isPending || teamsConfigHealthCheck.isPending}
+                onSave={(fields, { onSuccess }) =>
+                  teamsUpsert.mutate(
+                    { id: teams.id, type: 'teams', ...fields },
+                    {
+                      onSuccess: () => {
+                        toast.success('Teams config saved')
+                        teamsConfigHealthCheck.mutate(teams.id)
+                        onSuccess()
+                      },
+                    }
+                  )
+                }
+              />
+              <TeamsChannelsSection integrationId={teams.id} />
+            </>
+          ) : (
+            <p className="border-t border-border pt-4 text-xs text-slate-500">
+              Toggle Microsoft Teams on above to configure its connection.
+            </p>
+          )
+        ) : teams?.teams_team_id ? (
+          <p className="text-sm text-slate-600">
+            Connected to team{' '}
+            <span className="font-medium text-foreground">{teams.teams_team_id}</span>
+          </p>
+        ) : (
+          <p className="text-xs text-slate-500">
+            Not connected yet — ask an admin to set up the Teams connection.
+          </p>
+        )}
       </ConnectedSourceCard>
 
       <Dialog
