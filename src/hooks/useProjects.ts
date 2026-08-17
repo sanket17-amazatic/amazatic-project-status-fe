@@ -21,6 +21,8 @@ export interface Project {
   evidence_count: number
   severity: AiPriority | null
   last_synced: string | null
+  /** Recipient list for this project's client-facing status emails (management-editable). */
+  client_emails: string[]
 }
 
 interface PaginatedResponse<T> {

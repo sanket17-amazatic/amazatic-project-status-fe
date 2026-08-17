@@ -3,9 +3,11 @@ import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { ShimmerTitle, ShimmerText } from 'shimmer-effects-react'
 import { Button } from '@/components/ui/button'
 import { useProject } from '@/hooks/useProject'
+import { useAuthStore } from '@/stores/authStore'
 import { DetailsTab } from './tabs/DetailsTab'
 import { TeamTab } from './tabs/TeamTab'
 import { IntegrationsTab } from './tabs/IntegrationsTab'
+import { ClientEmailsField } from './tabs/ClientEmailsField'
 import { TerminologySection } from './TerminologySection'
 
 /**
@@ -21,6 +23,7 @@ import { TerminologySection } from './TerminologySection'
 export default function ProjectSettingsPage() {
   const { id } = useParams()
   const { data: project, isLoading, isError, error } = useProject(id)
+  const isManagement = useAuthStore((state) => state.user?.role) === 'management'
 
   if (isLoading) {
     return (
@@ -65,6 +68,12 @@ export default function ProjectSettingsPage() {
       </div>
 
       <TerminologySection />
+
+      <ClientEmailsField
+        projectId={project.id}
+        clientEmails={project.client_emails}
+        editable={isManagement}
+      />
 
       <div className="flex flex-col gap-4">
         <p className="border-b border-[#e5e5e5] pb-3 text-base font-semibold text-black">
