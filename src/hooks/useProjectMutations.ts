@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { postJson, patchJson, del } from '@/lib/api'
+import { postJson, patchJson, del, apiErrorDetail } from '@/lib/api'
 import type { Project, ProjectStatus } from './useProjects'
 
 export interface ProjectFormValues {
@@ -39,6 +39,9 @@ export function useCreateProject() {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       toast.success('Project created')
     },
+    onError: (error) => {
+      toast.error(apiErrorDetail(error) ?? 'Could not create project')
+    },
   })
 }
 
@@ -54,8 +57,8 @@ export function useUpdateProject(id: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['project', id] })
       toast.success('Changes saved')
     },
-    onError: () => {
-      toast.error('Could not save changes')
+    onError: (error) => {
+      toast.error(apiErrorDetail(error) ?? 'Could not save changes')
     },
   })
 }

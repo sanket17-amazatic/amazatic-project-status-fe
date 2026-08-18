@@ -28,7 +28,7 @@ export function readJiraConfig(config: Record<string, unknown>): JiraConfig {
   }
 }
 
-export type IntegrationType = 'jira' | 'slack_own' | 'slack_client'
+export type IntegrationType = 'jira' | 'slack_own' | 'slack_client' | 'teams'
 
 export interface ProjectIntegration {
   id: number
@@ -38,6 +38,11 @@ export interface ProjectIntegration {
   health_status: HealthStatus
   last_checked_at: string | null
   config: Record<string, unknown>
+  slack_team_name: string
+  slack_installed_at: string | null
+  teams_tenant_id: string
+  teams_client_id: string
+  teams_team_id: string
 }
 
 interface PaginatedResponse<T> {
@@ -63,11 +68,30 @@ export function useIntegrations(projectId: string) {
   return { data: integrations, isLoading: query.isLoading }
 }
 
+interface UpsertIntegrationInput {
+  id?: number
+  type: IntegrationType
+  enabled?: boolean
+  config?: JiraConfig
+  /** Azure AD app registration values (D-04) — Teams-only, never sent for
+   * other types. `teams_client_secret` is write-only server-side; omit it
+   * entirely (don't send an empty string) to leave an already-set secret
+   * unchanged — same "blank means unchanged" contract as the field itself. */
+  teams_client_id?: string
+  teams_client_secret?: string
+  teams_tenant_id?: string
+  /** Paste-a-channel-link convenience — fills teams_team_id/teams_tenant_id
+   * server-side (see teams_integration.services.parse_teams_channel_link).
+   * Explicit teams_tenant_id above still wins if both are sent. */
+  teams_channel_link?: string
+}
+
 /**
- * Creates the integration row if absent, else PATCHes. Used both for the
- * enabled on/off toggle and for saving Jira's config (base_url/email/
- * project_key — see JiraConfig) — callers pass only the field(s) they're
- * changing so, e.g., saving config doesn't also flip `enabled`.
+ * Creates the integration row if absent, else PATCHes. Used for the
+ * enabled on/off toggle, Jira's config (base_url/email/project_key — see
+ * JiraConfig), and Teams' connection credentials — callers pass only the
+ * field(s) they're changing so, e.g., saving config doesn't also flip
+ * `enabled`.
  */
 export function useUpsertIntegration(projectId: string) {
   const queryClient = useQueryClient()
@@ -77,23 +101,27 @@ export function useUpsertIntegration(projectId: string) {
       type,
       enabled,
       config,
-    }: {
-      id?: number
-      type: IntegrationType
-      enabled?: boolean
-      config?: JiraConfig
-    }) => {
+      teams_client_id,
+      teams_client_secret,
+      teams_tenant_id,
+      teams_channel_link,
+    }: UpsertIntegrationInput) => {
+      const payload: Omit<UpsertIntegrationInput, 'id' | 'type'> = {}
+      if (enabled !== undefined) payload.enabled = enabled
+      if (config !== undefined) payload.config = config
+      if (teams_client_id !== undefined) payload.teams_client_id = teams_client_id
+      if (teams_client_secret !== undefined) payload.teams_client_secret = teams_client_secret
+      if (teams_tenant_id !== undefined) payload.teams_tenant_id = teams_tenant_id
+      if (teams_channel_link !== undefined) payload.teams_channel_link = teams_channel_link
+
       if (id) {
-        const payload: { enabled?: boolean; config?: JiraConfig } = {}
-        if (enabled !== undefined) payload.enabled = enabled
-        if (config !== undefined) payload.config = config
         return patchJson<ProjectIntegration>(`/api/integrations/${id}/`, payload)
       }
       return postJson<ProjectIntegration>('/api/integrations/', {
         project: Number(projectId),
         type,
         enabled: enabled ?? false,
-        config,
+        ...payload,
       })
     },
     onSuccess: () => {
@@ -115,7 +143,8 @@ export function useRemoveIntegration(projectId: string) {
   })
 }
 
-/** D-06: stub health-check — no real probe, re-reads current status. */
+/** D-06: runs a real probe per integration type (Jira sync, Slack auth_test,
+ * Teams token acquisition) and returns the resulting status. */
 export function useCheckHealth(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
