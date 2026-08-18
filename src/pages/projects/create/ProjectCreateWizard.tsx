@@ -279,7 +279,7 @@ export function ProjectCreateWizard() {
                             // Old manager's typed email must not silently attach to the new one.
                             form.setValue('project_manager_email', '')
                           }}
-                          value={field.value ? String(field.value) : undefined}
+                          value={field.value != null ? String(field.value) : undefined}
                         >
                           <FormControl>
                             <SelectTrigger className="w-full">

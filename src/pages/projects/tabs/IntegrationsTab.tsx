@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { Project } from '@/hooks/useProjects'
-import { useAuthStore } from '@/stores/authStore'
+import { useCanManageProject } from '@/hooks/useCanManageProject'
 import {
   useIntegrations,
   useUpsertIntegration,
@@ -394,12 +394,7 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
  * Phase 4/7).
  */
 export function IntegrationsTab({ project }: { project: Project }) {
-  const role = useAuthStore((state) => state.user?.role)
-  const currentUserId = useAuthStore((state) => state.user?.id)
-  const isManagement = role === 'management'
-  // Relaxed 2026-08-18: a project's own PM can also configure its Jira/
-  // Teams integrations, same canManageTeam pattern as TeamTab.
-  const canManage = isManagement || project.project_manager === currentUserId
+  const { canManage } = useCanManageProject(project)
   const projectId = String(project.id)
 
   const { data: integrations, isLoading: integrationsLoading } = useIntegrations(projectId)

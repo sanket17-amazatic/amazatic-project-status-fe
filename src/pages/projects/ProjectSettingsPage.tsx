@@ -3,7 +3,7 @@ import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { ShimmerTitle, ShimmerText } from 'shimmer-effects-react'
 import { Button } from '@/components/ui/button'
 import { useProject } from '@/hooks/useProject'
-import { useAuthStore } from '@/stores/authStore'
+import { useCanManageProject } from '@/hooks/useCanManageProject'
 import { DetailsTab } from './tabs/DetailsTab'
 import { TeamTab } from './tabs/TeamTab'
 import { IntegrationsTab } from './tabs/IntegrationsTab'
@@ -23,8 +23,7 @@ import { TerminologySection } from './TerminologySection'
 export default function ProjectSettingsPage() {
   const { id } = useParams()
   const { data: project, isLoading, isError, error } = useProject(id)
-  const isManagement = useAuthStore((state) => state.user?.role) === 'management'
-  const currentUserId = useAuthStore((state) => state.user?.id)
+  const { isManagement, canManage } = useCanManageProject(project)
 
   if (isLoading) {
     return (
@@ -71,7 +70,7 @@ export default function ProjectSettingsPage() {
       <TerminologySection
         projectId={project.id}
         terminology={project.terminology ?? []}
-        editable={isManagement || project.project_manager === currentUserId}
+        editable={canManage}
       />
 
       <ClientEmailsField

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Project } from '@/hooks/useProjects'
-import { useAuthStore } from '@/stores/authStore'
+import { useCanManageProject } from '@/hooks/useCanManageProject'
 import { useUsers } from '@/hooks/useUsers'
 import { useProjectMembers, useRemoveMember } from '@/hooks/useMemberships'
 import {
@@ -52,10 +52,7 @@ function MemberChip({ label, onRemove }: { label: string; onRemove?: () => void 
  * the exact same modal instead of PM having a separate, email-only path.
  */
 export function TeamTab({ project }: { project: Project }) {
-  const role = useAuthStore((state) => state.user?.role)
-  const currentUserId = useAuthStore((state) => state.user?.id)
-  const isManagement = role === 'management'
-  const canManageTeam = isManagement || project.project_manager === currentUserId
+  const { isManagement, canManage: canManageTeam } = useCanManageProject(project)
   const projectId = String(project.id)
 
   const { data: members, isLoading: membersLoading } = useProjectMembers(projectId)

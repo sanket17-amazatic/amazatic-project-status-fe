@@ -192,6 +192,7 @@ export function ProjectForm({
               <FormItem>
                 <FormLabel>Project manager</FormLabel>
                 <Select
+                  disabled={readOnly}
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value ? String(field.value) : undefined}
                 >

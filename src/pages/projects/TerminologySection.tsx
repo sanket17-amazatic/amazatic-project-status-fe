@@ -52,19 +52,32 @@ export function TerminologySection({
   const canSubmit = abbreviation.trim().length > 0 && meaning.trim().length > 0
 
   function handleAdd() {
-    if (!canSubmit) return
+    if (!canSubmit || updateProject.isPending) return
     const next = [...terminology, { abbreviation: abbreviation.trim(), meaning: meaning.trim() }]
-    updateProject.mutate({ terminology: next })
-    setAbbreviation('')
-    setMeaning('')
-    setOpen(false)
+    updateProject.mutate(
+      { terminology: next },
+      {
+        // Only clear the form and close on success — on failure the dialog
+        // stays open with what was typed so the user can just retry instead
+        // of losing their input and having to retype it (PR #12 review).
+        onSuccess: () => {
+          setAbbreviation('')
+          setMeaning('')
+          setOpen(false)
+        },
+      }
+    )
   }
 
   function handleRemove(index: number) {
+    if (updateProject.isPending) return
     updateProject.mutate({ terminology: terminology.filter((_, i) => i !== index) })
   }
 
-  const columns = chunkIntoColumns(terminology)
+  // Pair each entry with its real index before chunking — avoids
+  // terminology.indexOf(entry) (O(n) per row, reference-equality-based)
+  // inside the render loop below (PR #12 review).
+  const columns = chunkIntoColumns(terminology.map((entry, index) => ({ entry, index })))
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -83,35 +96,33 @@ export function TerminologySection({
               className="flex flex-1 flex-col gap-3 border-border px-3 first:pl-0 last:border-r-0"
               style={{ borderRightWidth: columnIndex < columns.length - 1 ? 1 : 0 }}
             >
-              {column.map((entry) => {
-                const index = terminology.indexOf(entry)
-                return (
-                  <div
-                    key={`${entry.abbreviation}-${index}`}
-                    className="flex items-center justify-between gap-2 text-sm whitespace-nowrap"
-                  >
-                    <p className="text-black">
-                      <span className="font-semibold">{entry.abbreviation}</span> ={' '}
-                      <span className="font-medium">{entry.meaning}</span>
-                    </p>
-                    {editable && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            aria-label={`Remove ${entry.abbreviation}`}
-                            className="flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-slate-100"
-                            onClick={() => handleRemove(index)}
-                          >
-                            <X className="size-4" aria-hidden="true" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>Remove {entry.abbreviation}</TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-                )
-              })}
+              {column.map(({ entry, index }) => (
+                <div
+                  key={`${entry.abbreviation}-${index}`}
+                  className="flex items-center justify-between gap-2 text-sm whitespace-nowrap"
+                >
+                  <p className="text-black">
+                    <span className="font-semibold">{entry.abbreviation}</span> ={' '}
+                    <span className="font-medium">{entry.meaning}</span>
+                  </p>
+                  {editable && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${entry.abbreviation}`}
+                          disabled={updateProject.isPending}
+                          className="flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-50"
+                          onClick={() => handleRemove(index)}
+                        >
+                          <X className="size-4" aria-hidden="true" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Remove {entry.abbreviation}</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              ))}
             </div>
           ))}
         </div>
@@ -144,7 +155,7 @@ export function TerminologySection({
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button disabled={!canSubmit} onClick={handleAdd}>
+            <Button disabled={!canSubmit || updateProject.isPending} onClick={handleAdd}>
               Add
             </Button>
           </DialogFooter>
