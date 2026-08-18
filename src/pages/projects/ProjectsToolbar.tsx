@@ -73,7 +73,7 @@ export function ProjectsToolbar({
             ))}
           </SelectContent>
         </Select>
-        {role === 'management' && (
+        {(role === 'management' || role === 'pm') && (
           <Button asChild className="bg-[#38C776] text-white hover:bg-[#2fb267]">
             <Link to="/projects/new">Create Project</Link>
           </Button>

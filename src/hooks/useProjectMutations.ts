@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { postJson, patchJson, del, apiErrorDetail } from '@/lib/api'
-import type { Project, ProjectStatus } from './useProjects'
+import type { Project, ProjectStatus, TerminologyEntry } from './useProjects'
 
 export interface ProjectFormValues {
   name: string
@@ -23,6 +23,10 @@ export interface ProjectFormValues {
   member_emails?: Record<number, string>
   /** Client-facing status-email recipients (Project.client_emails, PROJ-04). */
   client_emails?: string[]
+  /** Project-specific shorthand glossary (Project.terminology) — PM-writable
+   * on the project they manage, unlike the rest of ProjectFormValues (backend
+   * enforces this narrowly: a PM PATCH must contain *only* this key). */
+  terminology?: TerminologyEntry[]
 }
 
 /**
