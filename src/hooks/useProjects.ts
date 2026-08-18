@@ -21,6 +21,13 @@ export interface Project {
   evidence_count: number
   severity: AiPriority | null
   last_synced: string | null
+  /** Recipient list for this project's client-facing status emails
+   * (management-editable). Optional, not just possibly-empty: this key
+   * doesn't exist on API responses until the backend's Project.client_emails
+   * field ships (backend PR #33) — the two repos deploy independently on
+   * push to main, so a FE deploy landing first must not assume it's there.
+   * Consumers must default with `?? []`, not access it directly. */
+  client_emails?: string[]
 }
 
 interface PaginatedResponse<T> {

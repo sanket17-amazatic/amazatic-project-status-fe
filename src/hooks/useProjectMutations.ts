@@ -21,6 +21,8 @@ export interface ProjectFormValues {
    * its plain-int-list shape. */
   project_manager_email?: string
   member_emails?: Record<number, string>
+  /** Client-facing status-email recipients (Project.client_emails, PROJ-04). */
+  client_emails?: string[]
 }
 
 /**
