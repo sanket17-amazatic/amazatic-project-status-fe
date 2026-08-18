@@ -24,6 +24,7 @@ export default function ProjectSettingsPage() {
   const { id } = useParams()
   const { data: project, isLoading, isError, error } = useProject(id)
   const isManagement = useAuthStore((state) => state.user?.role) === 'management'
+  const currentUserId = useAuthStore((state) => state.user?.id)
 
   if (isLoading) {
     return (
@@ -67,7 +68,11 @@ export default function ProjectSettingsPage() {
         </div>
       </div>
 
-      <TerminologySection />
+      <TerminologySection
+        projectId={project.id}
+        terminology={project.terminology ?? []}
+        editable={isManagement || project.project_manager === currentUserId}
+      />
 
       <ClientEmailsField
         projectId={project.id}

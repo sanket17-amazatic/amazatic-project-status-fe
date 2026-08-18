@@ -79,7 +79,7 @@ export function TeamTab({ project }: { project: Project }) {
     <div className="space-y-6">
       <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-start">
         <div className="flex w-full flex-col gap-4 lg:w-[566px] lg:shrink-0">
-          {isManagement && <ProjectNameField projectId={project.id} name={project.name} />}
+          <ProjectNameField projectId={project.id} name={project.name} editable={isManagement} />
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">

@@ -5,9 +5,20 @@ import { useUpdateProject } from '@/hooks/useProjectMutations'
 /**
  * Auto-saves on blur, same pattern as PM reassignment/team/integrations on
  * this page — there's no page-level "Update Changes" button because each
- * section already saves for real via its own mutation.
+ * section already saves for real via its own mutation. Always rendered
+ * (same layout for every role, matching ClientEmailsField) — `editable`
+ * just toggles readOnly + whether blur saves, so non-management viewers
+ * still see the same boxed input instead of the section disappearing.
  */
-export function ProjectNameField({ projectId, name }: { projectId: number; name: string }) {
+export function ProjectNameField({
+  projectId,
+  name,
+  editable = true,
+}: {
+  projectId: number
+  name: string
+  editable?: boolean
+}) {
   const updateProject = useUpdateProject(String(projectId))
   const [value, setValue] = useState(name)
 
@@ -28,7 +39,8 @@ export function ProjectNameField({ projectId, name }: { projectId: number; name:
       <Input
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        onBlur={handleBlur}
+        onBlur={editable ? handleBlur : undefined}
+        readOnly={!editable}
         className="h-11 rounded-sm border-border text-sm font-medium"
       />
     </div>

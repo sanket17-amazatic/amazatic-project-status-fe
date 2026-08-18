@@ -395,7 +395,11 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
  */
 export function IntegrationsTab({ project }: { project: Project }) {
   const role = useAuthStore((state) => state.user?.role)
+  const currentUserId = useAuthStore((state) => state.user?.id)
   const isManagement = role === 'management'
+  // Relaxed 2026-08-18: a project's own PM can also configure its Jira/
+  // Teams integrations, same canManageTeam pattern as TeamTab.
+  const canManage = isManagement || project.project_manager === currentUserId
   const projectId = String(project.id)
 
   const { data: integrations, isLoading: integrationsLoading } = useIntegrations(projectId)
@@ -435,7 +439,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
     integration: ProjectIntegration | undefined,
     checkHealth: ReturnType<typeof useCheckHealth>
   ) {
-    if (!isManagement || !integration) return null
+    if (!canManage || !integration) return null
     return (
       <div className="flex items-center gap-2">
         <ShimmerButton mode="light" loading={checkHealth.isPending}>
@@ -476,7 +480,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
             <HealthBadge status={jira?.health_status ?? 'not_configured'} />
             <Switch
               checked={jira?.enabled ?? false}
-              disabled={!isManagement || jiraUpsert.isPending}
+              disabled={!canManage || jiraUpsert.isPending}
               aria-label="Toggle Jira integration"
               onCheckedChange={(checked) =>
                 jiraUpsert.mutate({ id: jira?.id, type: 'jira', enabled: checked })
@@ -486,7 +490,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
           </>
         }
       >
-        {isManagement &&
+        {canManage &&
           (jira?.id ? (
             <JiraConfigForm
               integration={jira}
@@ -548,7 +552,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
             <HealthBadge status={teams?.health_status ?? 'not_configured'} />
             <Switch
               checked={teams?.enabled ?? false}
-              disabled={!isManagement || teamsUpsert.isPending}
+              disabled={!canManage || teamsUpsert.isPending}
               aria-label="Toggle Microsoft Teams integration"
               onCheckedChange={(checked) =>
                 teamsUpsert.mutate({ id: teams?.id, type: 'teams', enabled: checked })
@@ -558,7 +562,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
           </>
         }
       >
-        {isManagement ? (
+        {canManage ? (
           teams?.id ? (
             <>
               <TeamsConfigForm

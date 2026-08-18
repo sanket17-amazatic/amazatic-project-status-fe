@@ -5,6 +5,11 @@ import { mapAiPriorityToSeverity } from '@/lib/severity'
 
 export type ProjectStatus = 'not_started' | 'in_progress' | 'completed' | 'on_hold'
 
+export interface TerminologyEntry {
+  abbreviation: string
+  meaning: string
+}
+
 export interface Project {
   id: number
   name: string
@@ -28,6 +33,11 @@ export interface Project {
    * push to main, so a FE deploy landing first must not assume it's there.
    * Consumers must default with `?? []`, not access it directly. */
   client_emails?: string[]
+  /** Project-specific shorthand glossary fed into the AI summarizer's
+   * project_context (see backend projects.services.ai_context) — e.g. "BBE"
+   * = "Buy Box Election project". Same independent-deploy optionality as
+   * client_emails above; default with `?? []`. */
+  terminology?: TerminologyEntry[]
 }
 
 interface PaginatedResponse<T> {

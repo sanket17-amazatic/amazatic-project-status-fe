@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select'
 import { useUsers } from '@/hooks/useUsers'
 import { useCreateProject } from '@/hooks/useProjectMutations'
+import { useAuthStore } from '@/stores/authStore'
 import { MemberTypeahead } from './MemberTypeahead'
 import { ShimmerButton, ShimmerDiv } from 'shimmer-effects-react'
 
@@ -97,6 +98,12 @@ export function ProjectCreateWizard() {
   const navigate = useNavigate()
   const { data: users, isLoading: usersLoading } = useUsers()
   const createProject = useCreateProject()
+  const role = useAuthStore((state) => state.user?.role)
+  const currentUserId = useAuthStore((state) => state.user?.id)
+  // A PM can only ever create a project as its own manager (server forces
+  // this too, ProjectSerializer.create) — pre-fill and lock the picker
+  // instead of letting them pick, then find out on submit it was ignored.
+  const isPm = role === 'pm'
 
   const form = useForm<WizardValues>({
     resolver: zodResolver(wizardSchema),
@@ -106,7 +113,7 @@ export function ProjectCreateWizard() {
       start_date: todayISO(),
       end_date: null,
       jira_api_token: '',
-      project_manager: undefined,
+      project_manager: isPm ? currentUserId : undefined,
       member_ids: [],
       project_manager_email: '',
       member_emails: {},
@@ -260,6 +267,7 @@ export function ProjectCreateWizard() {
                       <FormItem>
                         <FormLabel>Project Manager</FormLabel>
                         <Select
+                          disabled={isPm}
                           onValueChange={(value) => {
                             const nextManagerId = Number(value)
                             field.onChange(nextManagerId)

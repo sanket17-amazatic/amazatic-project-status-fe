@@ -55,6 +55,9 @@ interface ProjectFormProps {
    * keeps it here. `name` still submits as part of this form's values
    * either way (unaffected field, just not rendered). */
   showNameField?: boolean
+  /** Non-management viewers get the same boxed layout, just disabled — no
+   * submit button — instead of a different read-only dl/dt render. */
+  readOnly?: boolean
 }
 
 /**
@@ -63,7 +66,14 @@ interface ProjectFormProps {
  * FK is non-nullable, T-02-20); edit mode omits it — the Team tab (02-07)
  * owns PM reassignment.
  */
-export function ProjectForm({ mode, defaultValues, onSubmit, pending, showNameField = true }: ProjectFormProps) {
+export function ProjectForm({
+  mode,
+  defaultValues,
+  onSubmit,
+  pending,
+  showNameField = true,
+  readOnly = false,
+}: ProjectFormProps) {
   const { data: users, isLoading: usersLoading } = useUsers()
   const schema = mode === 'create' ? createSchema : editSchema
 
@@ -90,7 +100,7 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending, showNameFi
               <FormItem>
                 <FormLabel>Name</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} disabled={readOnly} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -104,7 +114,7 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending, showNameFi
             <FormItem>
               <FormLabel className="text-sm text-black">Description</FormLabel>
               <FormControl>
-                <Textarea {...field} className="rounded-sm border-border" />
+                <Textarea {...field} disabled={readOnly} className="rounded-sm border-border" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -122,6 +132,7 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending, showNameFi
                     type="date"
                     {...field}
                     value={field.value ?? ''}
+                    disabled={readOnly}
                     className="h-11 rounded-sm border-border text-sm"
                   />
                 </FormControl>
@@ -140,6 +151,7 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending, showNameFi
                     type="date"
                     {...field}
                     value={field.value ?? ''}
+                    disabled={readOnly}
                     className="h-11 rounded-sm border-border text-sm"
                   />
                 </FormControl>
@@ -154,7 +166,7 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending, showNameFi
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-sm text-black">Status</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={readOnly}>
                 <FormControl>
                   <SelectTrigger className="h-11 w-full rounded-sm border-border text-sm">
                     <SelectValue />
@@ -207,15 +219,17 @@ export function ProjectForm({ mode, defaultValues, onSubmit, pending, showNameFi
             )}
           />
         )}
-        <ShimmerButton mode="light" loading={pending}>
-          <Button
-            type="submit"
-            disabled={pending}
-            className={mode === 'edit' ? 'rounded-sm bg-[#38c776] text-white hover:bg-[#38c776]/90' : undefined}
-          >
-            {mode === 'create' ? 'Create Project' : 'Save changes'}
-          </Button>
-        </ShimmerButton>
+        {!readOnly && (
+          <ShimmerButton mode="light" loading={pending}>
+            <Button
+              type="submit"
+              disabled={pending}
+              className={mode === 'edit' ? 'rounded-sm bg-[#38c776] text-white hover:bg-[#38c776]/90' : undefined}
+            >
+              {mode === 'create' ? 'Create Project' : 'Save changes'}
+            </Button>
+          </ShimmerButton>
+        )}
       </form>
     </Form>
   )
