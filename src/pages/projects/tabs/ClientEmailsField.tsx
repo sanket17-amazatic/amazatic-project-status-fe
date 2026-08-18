@@ -2,7 +2,13 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { useUpdateProject } from '@/hooks/useProjectMutations'
 
-const EMAIL_RE = /^\S+@\S+\.\S+$/
+// Reasonably strict (not full RFC 5322) — rejects the shapes Django's
+// EmailValidator also rejects (multiple @, consecutive/leading/trailing
+// dots in either the local part or domain) so a client-side "looks valid"
+// match doesn't get a surprise 400 back from Project.client_emails'
+// server-side validation. Not exhaustive — the server stays the
+// authoritative validator either way.
+const EMAIL_RE = /^[^\s@.]+(?:\.[^\s@.]+)*@[^\s@.]+(?:\.[^\s@.]+)+$/
 
 function parseEmails(raw: string): string[] {
   return raw
@@ -41,10 +47,27 @@ export function ClientEmailsField({
     }
     setError(null)
     const normalized = parsed.map((email) => email.toLowerCase())
-    setValue(normalized.join(', '))
-    if (JSON.stringify(normalized) !== JSON.stringify(clientEmails)) {
-      updateProject.mutate({ client_emails: normalized })
+    const savedValue = clientEmails.join(', ')
+    if (JSON.stringify(normalized) === JSON.stringify(clientEmails)) {
+      setValue(savedValue)
+      return
     }
+    setValue(normalized.join(', '))
+    updateProject.mutate(
+      { client_emails: normalized },
+      {
+        // Reflects the server's response (post-dedupe/normalize), not just
+        // what was locally typed — the backend's own validator dedupes
+        // independently of parseEmails above, so "a@b.com, a@b.com" must
+        // end up showing the deduped list the server actually saved.
+        onSuccess: (updated) => setValue((updated.client_emails ?? []).join(', ')),
+        // useUpdateProject's own onError already toasts a generic failure —
+        // this just also rolls the input back to the last known-saved
+        // value, since a failed PATCH must not leave the field showing an
+        // unsaved value as if it had been saved.
+        onError: () => setValue(savedValue),
+      }
+    )
   }
 
   return (

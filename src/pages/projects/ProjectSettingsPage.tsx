@@ -71,7 +71,7 @@ export default function ProjectSettingsPage() {
 
       <ClientEmailsField
         projectId={project.id}
-        clientEmails={project.client_emails}
+        clientEmails={project.client_emails ?? []}
         editable={isManagement}
       />
 

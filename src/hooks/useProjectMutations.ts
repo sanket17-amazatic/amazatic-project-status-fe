@@ -54,6 +54,9 @@ export function useUpdateProject(id: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['project', id] })
       toast.success('Changes saved')
     },
+    onError: () => {
+      toast.error('Could not save changes')
+    },
   })
 }
 
