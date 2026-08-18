@@ -5,13 +5,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuthStore } from '@/stores/authStore'
@@ -52,20 +45,6 @@ export function TopBar({ title, backTo }: { title: string; backTo?: string }) {
         <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
       </div>
       <div className="flex items-center gap-3">
-        {/* Presentational only — no backend date-range filtering exists yet. */}
-        <Select defaultValue="week">
-          <SelectTrigger className="w-32" aria-label="Time range (not yet functional)">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-            <SelectItem value="quarter">This Quarter</SelectItem>
-            <SelectItem value="6months">6 Months</SelectItem>
-            <SelectItem value="year">This Year</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
-          </SelectContent>
-        </Select>
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>

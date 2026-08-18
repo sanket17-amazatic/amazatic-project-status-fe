@@ -1,15 +1,19 @@
+import { formatDashboardDateLabel } from '@/lib/format'
+
 interface HeroBannerProps {
   totalProjects: number
   criticalProjectCount: number
   mediumRiskCount: number
-  totalIncidents: number
+  description: string
+  /** DashboardSummary.date — the period the dropdown-selected range covers. */
+  date: string
 }
 
 /**
- * Executive-briefing banner — all four numbers are real (derived from
- * useProjects severity + useIncidentStats in DashboardPage). The narrative
- * sentence itself stays generic rather than naming a specific project, since
- * there's no real "why this project" signal behind that framing yet.
+ * Executive-briefing banner — all values are real, from useDashboardSummary
+ * (GET /api/dashboard-summary/) in DashboardPage. `description` is the
+ * server's own date-windowed narrative (names specific projects by severity
+ * bucket), rendered verbatim rather than reconstructed client-side.
  *
  * Background image crop (-6.68% top / 174.87% height) is the reference
  * design's exact Figma crop, not a natural object-fit:cover — reproduced
@@ -19,7 +23,8 @@ export function HeroBanner({
   totalProjects,
   criticalProjectCount,
   mediumRiskCount,
-  totalIncidents,
+  description,
+  date,
 }: HeroBannerProps) {
   return (
     <div className="relative flex w-full flex-col gap-4 overflow-hidden rounded-lg bg-[#0b1e3a] p-6 text-white">
@@ -34,16 +39,12 @@ export function HeroBanner({
           <img src="/icons/hero-briefing.svg" alt="" className="size-[11.25px]" />
         </div>
         <p className="text-[13px] font-semibold uppercase tracking-wide">Here's your executive briefing</p>
+        <span aria-hidden className="size-1 shrink-0 rounded-full bg-white/60" />
+        <p className="text-[13px] font-medium text-white/80">{formatDashboardDateLabel(date)}</p>
       </div>
 
       <div className="relative z-10 flex w-full flex-col items-start gap-4 lg:flex-row lg:items-center">
-        <p className="text-sm font-medium leading-[18.75px] text-white/90 lg:flex-1">
-          {`Across your `}
-          <span className="font-bold">{totalProjects}</span>
-          {` project${totalProjects === 1 ? '' : 's'}, `}
-          <span className="font-bold">{totalIncidents}</span>
-          {' open incidents are being tracked. Review the critical and at-risk projects below for details.'}
-        </p>
+        <p className="text-sm font-medium leading-[18.75px] text-white/90 lg:flex-1">{description}</p>
 
         <div className="flex w-full items-center rounded-xs bg-white/5 py-3 pl-4 pr-3 lg:w-[378px]">
           <div className="flex flex-wrap items-center gap-x-[26px] gap-y-3">

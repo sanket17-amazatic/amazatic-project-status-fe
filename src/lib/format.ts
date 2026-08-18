@@ -13,11 +13,26 @@ const MONTHS = [
   'Dec',
 ]
 
+function formatIsoDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  return `${MONTHS[month - 1]} ${day}, ${year}`
+}
+
 /** UI-SPEC: end_date -> "MMM D, YYYY"; null -> the muted "No deadline" string. */
 export function formatDeadline(endDate: string | null): string {
   if (!endDate) return 'No deadline'
-  const [year, month, day] = endDate.split('-').map(Number)
-  return `${MONTHS[month - 1]} ${day}, ${year}`
+  return formatIsoDate(endDate)
+}
+
+/**
+ * Dashboard HeroBanner period label — DashboardSummary.date (useDashboardSummary)
+ * is either a single "YYYY-MM-DD" (today/yesterday) or a "YYYY-MM-DD to
+ * YYYY-MM-DD" range (last_7_days/last_30_days) straight off the backend;
+ * renders as "MMM D, YYYY" or "MMM D, YYYY - MMM D, YYYY".
+ */
+export function formatDashboardDateLabel(dateField: string): string {
+  const [start, end] = dateField.split(' to ')
+  return end ? `${formatIsoDate(start)} - ${formatIsoDate(end)}` : formatIsoDate(start)
 }
 
 /** Users page "Last Active" column — real last_login, relative to now. */
