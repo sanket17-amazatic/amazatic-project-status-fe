@@ -11,6 +11,7 @@ import { SeverityBadge } from '@/components/SeverityBadge'
 import { formatIncidentTimestamp } from '@/lib/format'
 import { mapAiPriorityToSeverity } from '@/lib/severity'
 import { mockIncidentMediumLowSplit } from '@/lib/mockProjectBreakdown'
+import { cn } from '@/lib/utils'
 import type { Project } from '@/hooks/useProjects'
 
 interface ProjectsListTableProps {
@@ -72,8 +73,8 @@ export function ProjectsListTable({ projects }: ProjectsListTableProps) {
           <TableHead className="pr-4">Last Synced</TableHead>
         </TableRow>
       </TableHeader>
-      <TableBody className="[&>tr:nth-child(even)]:bg-slate-50/60">
-        {projects.map((project) => (
+      <TableBody>
+        {projects.map((project, index) => (
           <TableRow
             key={project.id}
             role="link"
@@ -82,7 +83,15 @@ export function ProjectsListTable({ projects }: ProjectsListTableProps) {
             onKeyDown={(event) => {
               if (event.key === 'Enter') navigate(`/projects/${project.id}`)
             }}
-            className="cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            className={cn(
+              // Zebra striping lives on the row itself, not a
+              // `[&>tr:nth-child(even)]` selector on TableBody — that
+              // selector's specificity (0,2,1) beat this row's own
+              // `hover:bg-slate-100` (0,2,0), silently killing hover on
+              // every even row (PR #15 review).
+              index % 2 === 1 && 'bg-slate-50/60',
+              'cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary'
+            )}
           >
             <TableCell className="py-3 pl-4">
               <Link
