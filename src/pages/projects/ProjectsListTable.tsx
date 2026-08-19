@@ -11,6 +11,7 @@ import { SeverityBadge } from '@/components/SeverityBadge'
 import { formatIncidentTimestamp } from '@/lib/format'
 import { mapAiPriorityToSeverity } from '@/lib/severity'
 import { mockIncidentMediumLowSplit } from '@/lib/mockProjectBreakdown'
+import { cn } from '@/lib/utils'
 import type { Project } from '@/hooks/useProjects'
 
 interface ProjectsListTableProps {
@@ -64,16 +65,16 @@ export function ProjectsListTable({ projects }: ProjectsListTableProps) {
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead>Project</TableHead>
+        <TableRow className="bg-slate-50 hover:bg-slate-50">
+          <TableHead className="py-3 pl-4">Project</TableHead>
           <TableHead>Manager</TableHead>
           <TableHead>Incidents</TableHead>
           <TableHead>Severity</TableHead>
-          <TableHead>Last Synced</TableHead>
+          <TableHead className="pr-4">Last Synced</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {projects.map((project) => (
+        {projects.map((project, index) => (
           <TableRow
             key={project.id}
             role="link"
@@ -82,13 +83,21 @@ export function ProjectsListTable({ projects }: ProjectsListTableProps) {
             onKeyDown={(event) => {
               if (event.key === 'Enter') navigate(`/projects/${project.id}`)
             }}
-            className="cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            className={cn(
+              // Zebra striping lives on the row itself, not a
+              // `[&>tr:nth-child(even)]` selector on TableBody — that
+              // selector's specificity (0,2,1) beat this row's own
+              // `hover:bg-slate-100` (0,2,0), silently killing hover on
+              // every even row (PR #15 review).
+              index % 2 === 1 && 'bg-slate-50/60',
+              'cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary'
+            )}
           >
-            <TableCell>
+            <TableCell className="py-3 pl-4">
               <Link
                 to={`/projects/${project.id}`}
                 onClick={(event) => event.stopPropagation()}
-                className="text-primary hover:underline"
+                className="font-normal text-foreground hover:underline"
               >
                 {project.name}
               </Link>
@@ -101,7 +110,7 @@ export function ProjectsListTable({ projects }: ProjectsListTableProps) {
             <TableCell>
               <SeverityBadge severity={mapAiPriorityToSeverity(project.severity)} />
             </TableCell>
-            <TableCell className="text-slate-500">
+            <TableCell className="pr-4 text-slate-500">
               {formatIncidentTimestamp(project.last_synced)}
             </TableCell>
           </TableRow>
