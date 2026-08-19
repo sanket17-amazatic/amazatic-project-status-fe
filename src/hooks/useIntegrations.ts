@@ -43,6 +43,7 @@ export interface ProjectIntegration {
   teams_tenant_id: string
   teams_client_id: string
   teams_team_id: string
+  teams_team_name: string
 }
 
 interface PaginatedResponse<T> {
