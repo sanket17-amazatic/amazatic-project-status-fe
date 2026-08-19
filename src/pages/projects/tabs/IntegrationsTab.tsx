@@ -325,9 +325,9 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
             <Badge
               key={channel.id}
               variant="secondary"
-              className="h-[30px] gap-2.5 rounded-full bg-[#f5f5f5] px-3 text-[13px] font-medium text-black hover:bg-[#f5f5f5]"
+              className="h-[30px] max-w-full gap-2.5 rounded-full bg-[#f5f5f5] px-3 text-[13px] font-medium text-black hover:bg-[#f5f5f5]"
             >
-              #{channel.channel_name || channel.channel_id}
+              <span className="min-w-0 truncate">#{channel.channel_name || channel.channel_id}</span>
               <button
                 type="button"
                 aria-label={`Remove ${channel.channel_name || channel.channel_id}`}

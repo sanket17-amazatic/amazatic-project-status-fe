@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { getJson, postJson, patchJson, del, apiErrorDetail } from '@/lib/api'
+import { getJson, postJson, del, apiErrorDetail } from '@/lib/api'
 
 export interface TeamsChannel {
   id: number
@@ -48,21 +48,6 @@ export function useAddTeamsChannel(integrationId: number) {
     },
     onError: (error: unknown) => {
       toast.error(apiErrorDetail(error) ?? 'Could not add channel')
-    },
-  })
-}
-
-export function useUpdateTeamsChannel(integrationId: number) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
-      patchJson<TeamsChannel>(`/api/teams-channels/${id}/`, { enabled }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams-channels', integrationId] })
-      toast.success('Channel updated')
-    },
-    onError: (error: unknown) => {
-      toast.error(apiErrorDetail(error) ?? 'Could not update channel')
     },
   })
 }
