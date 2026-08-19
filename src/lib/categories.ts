@@ -35,5 +35,3 @@ export const CATEGORY_ORDER: IncidentCategoryKey[] = [
   'communication', 'delivery_delay', 'cross_team_dependency',
   'technical_debate', 'sprint_spillover', 'blocker',
 ]
-
-export const FALLBACK_CATEGORY_ICON = '/icons/category-technical-debt.svg'

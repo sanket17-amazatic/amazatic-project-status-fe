@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { mapAiPriorityToSeverity } from '@/lib/severity'
 import { SOURCE_META, type MessageSource } from '@/lib/sources'
-import { CATEGORY_META, CATEGORY_ORDER, FALLBACK_CATEGORY_ICON } from '@/lib/categories'
+import { CATEGORY_META, CATEGORY_ORDER } from '@/lib/categories'
 import type { Project, PriorityCounts } from '@/hooks/useProjects'
 
 interface ProjectSummaryCardProps {
@@ -140,7 +140,7 @@ export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
                 return (
                   <div key={category} className="flex min-w-0 items-center gap-2">
                     <img
-                      src={meta.icon ?? FALLBACK_CATEGORY_ICON}
+                      src={meta.icon}
                       alt=""
                       className="size-3.5 shrink-0"
                       aria-hidden="true"

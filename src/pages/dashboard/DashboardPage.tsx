@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,13 +32,6 @@ export default function DashboardPage() {
   const [dashboardRange, setDashboardRange] = useState<DashboardSummaryRange>('today')
   const [page, setPage] = useState(1)
 
-  // A new date window doesn't change which projects exist, but resetting
-  // avoids landing on a now-out-of-range page if a future ?date= variant
-  // ever does start excluding projects.
-  useEffect(() => {
-    setPage(1)
-  }, [dashboardRange])
-
   const { data, isLoading, isError, refetch } = useProjects({ date: dashboardRange, page })
   const {
     data: summary,
@@ -55,7 +48,14 @@ export default function DashboardPage() {
       <div className="mb-4 flex justify-end">
         <Select
           value={dashboardRange}
-          onValueChange={(value) => setDashboardRange(value as DashboardSummaryRange)}
+          onValueChange={(value) => {
+            // Synchronous with the range change itself, not a useEffect —
+            // otherwise the render right after the state change already
+            // fires a request for {date: newRange, page} at the old page,
+            // and the effect's setPage(1) fires a second, wasted one.
+            setDashboardRange(value as DashboardSummaryRange)
+            setPage(1)
+          }}
         >
           <SelectTrigger className="h-9 w-40" aria-label="Executive briefing date range">
             <SelectValue />
