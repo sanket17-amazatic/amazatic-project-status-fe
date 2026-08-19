@@ -14,12 +14,12 @@ import {
 import {
   useTeamsChannels,
   useAddTeamsChannel,
-  useUpdateTeamsChannel,
   useRemoveTeamsChannel,
   type TeamsChannel,
 } from '@/hooks/useTeamsChannels'
 import { HealthBadge } from '@/components/HealthBadge'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -253,7 +253,7 @@ function TeamsConfigForm({
         />
         <p className="mt-1 text-xs text-slate-500">
           {integration.teams_team_id
-            ? `Connected to team ${integration.teams_team_id}`
+            ? `Connected to team ${integration.teams_team_name || integration.teams_team_id}`
             : 'Not connected to a team yet — paste a channel link above.'}
         </p>
       </div>
@@ -282,13 +282,10 @@ function TeamsConfigForm({
 function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
   const { data: channels, isLoading } = useTeamsChannels(integrationId)
   const addChannel = useAddTeamsChannel(integrationId)
-  const updateChannel = useUpdateTeamsChannel(integrationId)
   const removeChannel = useRemoveTeamsChannel(integrationId)
   const [input, setInput] = useState('')
-  // Confirm before deleting, same as integration removal below — the X
-  // sits right next to the enable Switch, and unlike that toggle this
-  // action isn't reversible from this panel (the channel has to be
-  // re-added by link/id from scratch).
+  // Confirm before deleting — unlike a toggle, this isn't reversible from
+  // this panel (the channel has to be re-added by link/id from scratch).
   const [removeTarget, setRemoveTarget] = useState<TeamsChannel | null>(null)
 
   function handleAdd() {
@@ -298,47 +295,11 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
 
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-4">
-      <p className="text-xs font-semibold text-slate-500">Monitored channels</p>
-
-      {isLoading ? (
-        <ShimmerContentBlock mode="light" items={1} loading />
-      ) : channels.length === 0 ? (
-        <p className="text-xs text-slate-500">No channels yet — add one below.</p>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {channels.map((channel) => (
-            <div
-              key={channel.id}
-              className="flex items-center justify-between gap-2 rounded-md bg-muted px-2.5 py-1.5"
-            >
-              <span className="truncate text-sm text-foreground">
-                {channel.channel_name || channel.channel_id}
-              </span>
-              <div className="flex shrink-0 items-center gap-2">
-                <Switch
-                  checked={channel.enabled}
-                  aria-label={`Toggle ${channel.channel_name || channel.channel_id}`}
-                  onCheckedChange={(checked) =>
-                    updateChannel.mutate({ id: channel.id, enabled: checked })
-                  }
-                />
-                <button
-                  type="button"
-                  aria-label="Remove channel"
-                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-slate-200"
-                  onClick={() => setRemoveTarget(channel)}
-                >
-                  <X className="size-3.5" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <p className="text-xs font-semibold text-slate-500">Teams</p>
 
       <div className="flex gap-2">
         <Input
-          placeholder="Paste channel link or enter channel id"
+          placeholder="Paste the channel link"
           value={input}
           onChange={(event) => setInput(event.target.value)}
           className="flex-1"
@@ -346,7 +307,6 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
         <ShimmerButton mode="light" loading={addChannel.isPending}>
           <Button
             type="button"
-            size="sm"
             disabled={!input.trim() || addChannel.isPending}
             onClick={handleAdd}
           >
@@ -354,6 +314,32 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
           </Button>
         </ShimmerButton>
       </div>
+
+      {isLoading ? (
+        <ShimmerContentBlock mode="light" items={1} loading />
+      ) : channels.length === 0 ? (
+        <p className="text-xs text-slate-500">No channels yet — add one above.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {channels.map((channel) => (
+            <Badge
+              key={channel.id}
+              variant="secondary"
+              className="h-[30px] gap-2.5 rounded-full bg-[#f5f5f5] px-3 text-[13px] font-medium text-black hover:bg-[#f5f5f5]"
+            >
+              #{channel.channel_name || channel.channel_id}
+              <button
+                type="button"
+                aria-label={`Remove ${channel.channel_name || channel.channel_id}`}
+                className="text-slate-500 transition-colors hover:text-black"
+                onClick={() => setRemoveTarget(channel)}
+              >
+                <X className="size-[15px]" aria-hidden="true" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
 
       <Dialog open={removeTarget != null} onOpenChange={(open) => !open && setRemoveTarget(null)}>
         <DialogContent>
@@ -586,7 +572,9 @@ export function IntegrationsTab({ project }: { project: Project }) {
         ) : teams?.teams_team_id ? (
           <p className="text-sm text-slate-600">
             Connected to team{' '}
-            <span className="font-medium text-foreground">{teams.teams_team_id}</span>
+            <span className="font-medium text-foreground">
+              {teams.teams_team_name || teams.teams_team_id}
+            </span>
           </p>
         ) : (
           <p className="text-xs text-slate-500">
