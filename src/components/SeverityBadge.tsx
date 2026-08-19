@@ -3,10 +3,10 @@ import { cn } from '@/lib/utils'
 
 /** Same soft-tint pattern as StatusBadge — tinted bg + colored text. */
 const SEVERITY_CONFIG: Record<Severity, { label: string; className: string }> = {
-  critical: { label: 'Critical', className: 'bg-red-50 text-red-600' },
-  high: { label: 'High', className: 'bg-orange-50 text-orange-600' },
-  medium: { label: 'Medium', className: 'bg-amber-50 text-amber-700' },
-  low: { label: 'Low', className: 'bg-green-50 text-green-700' },
+  critical: { label: 'Critical', className: 'bg-red-100 text-red-600' },
+  high: { label: 'High', className: 'bg-orange-100 text-orange-600' },
+  medium: { label: 'Medium', className: 'bg-amber-100 text-amber-700' },
+  low: { label: 'Low', className: 'bg-green-100 text-green-700' },
 }
 
 /** `null` = no qualifying incident recorded for this project yet (not an error). */
@@ -18,7 +18,7 @@ export function SeverityBadge({ severity }: { severity: Severity | null }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
+        'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-normal',
         config.className
       )}
     >

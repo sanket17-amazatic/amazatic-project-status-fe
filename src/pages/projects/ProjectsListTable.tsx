@@ -64,15 +64,15 @@ export function ProjectsListTable({ projects }: ProjectsListTableProps) {
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead>Project</TableHead>
+        <TableRow className="bg-slate-50 hover:bg-slate-50">
+          <TableHead className="py-3 pl-4">Project</TableHead>
           <TableHead>Manager</TableHead>
           <TableHead>Incidents</TableHead>
           <TableHead>Severity</TableHead>
-          <TableHead>Last Synced</TableHead>
+          <TableHead className="pr-4">Last Synced</TableHead>
         </TableRow>
       </TableHeader>
-      <TableBody>
+      <TableBody className="[&>tr:nth-child(even)]:bg-slate-50/60">
         {projects.map((project) => (
           <TableRow
             key={project.id}
@@ -84,11 +84,11 @@ export function ProjectsListTable({ projects }: ProjectsListTableProps) {
             }}
             className="cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
           >
-            <TableCell>
+            <TableCell className="py-3 pl-4">
               <Link
                 to={`/projects/${project.id}`}
                 onClick={(event) => event.stopPropagation()}
-                className="text-primary hover:underline"
+                className="font-normal text-foreground hover:underline"
               >
                 {project.name}
               </Link>
@@ -101,7 +101,7 @@ export function ProjectsListTable({ projects }: ProjectsListTableProps) {
             <TableCell>
               <SeverityBadge severity={mapAiPriorityToSeverity(project.severity)} />
             </TableCell>
-            <TableCell className="text-slate-500">
+            <TableCell className="pr-4 text-slate-500">
               {formatIncidentTimestamp(project.last_synced)}
             </TableCell>
           </TableRow>

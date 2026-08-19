@@ -95,10 +95,14 @@ export default function ProjectsListPage() {
       )}
 
       {!isLoading && !isError && data && data.results.length > 0 && (
-        <>
+        <div className="overflow-hidden rounded-lg border border-border bg-white">
           <ProjectsListTable projects={visibleProjects} />
-          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </>
+          {totalPages > 1 && (
+            <div className="border-t border-border px-4 py-2">
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
