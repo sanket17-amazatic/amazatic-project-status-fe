@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { getJson } from '@/lib/api'
 import type { AiPriority } from '@/lib/severity'
-import { mapAiPriorityToSeverity } from '@/lib/severity'
+import type { CategoryCount } from '@/hooks/useProjectSummary'
+import type { DashboardSummaryRange } from '@/hooks/useDashboardSummary'
 
 export type ProjectStatus = 'not_started' | 'in_progress' | 'completed' | 'on_hold'
 
@@ -10,9 +11,19 @@ export interface TerminologyEntry {
   meaning: string
 }
 
+/** critical/medium/low breakdown for one source alone (Slack or Teams) —
+ * "critical" folds urgent+high, same grouping as severity.severity_bucket.
+ * No `total` field (unlike ProjectSummary's SourceSeverityCounts). */
+export interface PriorityCounts {
+  critical: number
+  medium: number
+  low: number
+}
+
 export interface Project {
   id: number
   name: string
+  abbreviation: string
   description: string
   start_date: string | null
   end_date: string | null
@@ -38,6 +49,13 @@ export interface Project {
    * = "Buy Box Election project". Same independent-deploy optionality as
    * client_emails above; default with `?? []`. */
   terminology?: TerminologyEntry[]
+  /** Deterministic one-line narrative (ProjectSerializer.get_summary) — no live AI call. */
+  summary: string
+  slack_incidents: PriorityCounts
+  teams_incidents: PriorityCounts
+  incident_categories: CategoryCount[]
+  /** Canonical phrases from a fixed vocabulary, sized to the real flagged-and-in-window count (ProjectSerializer.get_action_points). */
+  action_points: string[]
 }
 
 interface PaginatedResponse<T> {
@@ -52,6 +70,15 @@ export interface UseProjectsParams {
   ordering?: string
   search?: string
   page?: number
+  /** Scopes severity/incident-derived fields (severity, open_incidents,
+   * summary, slack_incidents, teams_incidents, incident_categories,
+   * action_points) to this window — same values as useDashboardSummary, so
+   * the dashboard's project list stays in sync with the banner's date
+   * filter (ProjectViewSet.get_serializer_context). Every visible project
+   * still returns, even with zero activity in the window — this never
+   * drops a project the way DashboardSummary's total_projects wouldn't
+   * either. */
+  date?: DashboardSummaryRange
 }
 
 /**
@@ -60,15 +87,16 @@ export interface UseProjectsParams {
  * `search` hits ProjectViewSet's SearchFilter (name/description); `page`
  * hits DRF's PageNumberPagination (PAGE_SIZE=25).
  */
-export function useProjects({ status, ordering, search, page }: UseProjectsParams) {
+export function useProjects({ status, ordering, search, page, date }: UseProjectsParams) {
   const query = useQuery({
-    queryKey: ['projects', { status, ordering, search, page }],
+    queryKey: ['projects', { status, ordering, search, page, date }],
     queryFn: () => {
       const params = new URLSearchParams()
       if (status) params.set('status', status)
       if (ordering) params.set('ordering', ordering)
       if (search) params.set('search', search)
       if (page && page > 1) params.set('page', String(page))
+      if (date) params.set('date', date)
       const qs = params.toString()
       return getJson<PaginatedResponse<Project>>(`/api/projects/${qs ? `?${qs}` : ''}`)
     },
@@ -79,53 +107,5 @@ export function useProjects({ status, ordering, search, page }: UseProjectsParam
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
-  }
-}
-
-/**
- * Dashboard HeroBanner needs org-wide critical/medium-risk project counts.
- * `useProjects` is page-scoped (server `PAGE_SIZE=25`), and no backend
- * aggregate exists for project-severity counts (unlike `/api/insights/stats/`'s
- * `priority_breakdown`, which counts incidents, not projects) — so this
- * fetches every page and aggregates client-side. Page size is read from the
- * first response rather than hardcoded, so it self-corrects if the server's
- * PAGE_SIZE ever changes. Bounded/acceptable at this app's 20-100-user org
- * scale; revisit with a backend aggregate if project counts grow much further.
- */
-export function useProjectSeverityCounts() {
-  const query = useQuery({
-    queryKey: ['projects', 'severity-counts'],
-    queryFn: async () => {
-      const first = await getJson<PaginatedResponse<Project>>('/api/projects/')
-      const pageSize = first.results.length
-      const totalPages = pageSize > 0 ? Math.ceil(first.count / pageSize) : 1
-
-      const restPages =
-        totalPages > 1
-          ? await Promise.all(
-              Array.from({ length: totalPages - 1 }, (_, index) =>
-                getJson<PaginatedResponse<Project>>(`/api/projects/?page=${index + 2}`)
-              )
-            )
-          : []
-
-      const allProjects = [first, ...restPages].flatMap((page) => page.results)
-
-      let criticalProjectCount = 0
-      let mediumRiskCount = 0
-      for (const project of allProjects) {
-        const severity = mapAiPriorityToSeverity(project.severity)
-        if (severity === 'critical') criticalProjectCount++
-        else if (severity === 'medium') mediumRiskCount++
-      }
-
-      return { totalProjects: first.count, criticalProjectCount, mediumRiskCount }
-    },
-  })
-
-  return {
-    data: query.data,
-    isLoading: query.isLoading,
-    isError: query.isError,
   }
 }

@@ -2,45 +2,23 @@ import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { mapAiPriorityToSeverity } from '@/lib/severity'
-import {
-  mockSourceBreakdown,
-  mockActionPoints,
-  mockIncidentCategories,
-  type MockSourceKey,
-  type MockIncidentCategory,
-} from '@/lib/mockProjectBreakdown'
-import type { Project } from '@/hooks/useProjects'
+import { SOURCE_META, type MessageSource } from '@/lib/sources'
+import { CATEGORY_META, CATEGORY_ORDER } from '@/lib/categories'
+import type { Project, PriorityCounts } from '@/hooks/useProjects'
 
 interface ProjectSummaryCardProps {
   project: Project
 }
 
-const SOURCE_META: Record<MockSourceKey, { label: string; icon: string }> = {
-  slack: { label: 'Slack', icon: '/icons/source-slack.svg' },
-  jira: { label: 'Jira', icon: '/icons/source-jira.svg' },
-  email: { label: 'Email', icon: '/icons/source-email.svg' },
-  teams: { label: 'Microsoft Teams', icon: '/icons/source-teams.svg' },
-  calls: { label: 'Calls', icon: '/icons/source-calls.svg' },
-}
+// Only slack/teams have real per-source incident counts on Project
+// (slack_incidents/teams_incidents, ProjectSerializer) — jira has no
+// equivalent breakdown field yet.
+const SOURCE_ORDER: MessageSource[] = ['slack', 'teams']
 
-const SOURCE_ORDER: MockSourceKey[] = ['slack', 'jira', 'email', 'teams', 'calls']
-
-/** "Scope Change" intentionally shares the technical-debt icon — matches the reference repo's lib/categories.ts. */
-const CATEGORY_ICON: Record<MockIncidentCategory, string> = {
-  Communication: '/icons/category-communication.svg',
-  'Delivery Delays': '/icons/category-delivery-delays.svg',
-  'Cross team dependency': '/icons/category-cross-team.svg',
-  'Technical Debt': '/icons/category-technical-debt.svg',
-  'Scope Change': '/icons/category-technical-debt.svg',
-  'Sprint Spillover': '/icons/category-sprint-spillover.svg',
-  Blockers: '/icons/category-blockers.svg',
-}
-
-// Mirrors CategoryChip's fallback (see src/pages/projects/CategoryChip.tsx):
-// once this card is wired to the real, free-text AI categories field
-// (useProjectSummary), a category outside the fixed union above must not
-// render a broken `<img src={undefined}>`.
-const FALLBACK_ICON = '/icons/category-technical-debt.svg'
+// project.action_points can return up to 9 phrases (ProjectSerializer's
+// _ACTION_POINT_POOL) — capped/split here to mirror the reference design's
+// fixed-width 2-column-of-3 grid.
+const MAX_ACTION_POINTS = 6
 
 function chunk<T>(items: T[], size: number): T[][] {
   const groups: T[][] = []
@@ -72,9 +50,17 @@ function SectionCard({
 }
 
 export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
-  const sources = mockSourceBreakdown(project.id)
-  const actionPoints = mockActionPoints(project.id)
-  const categories = mockIncidentCategories(project.id)
+  const sources: Record<MessageSource, PriorityCounts> = {
+    slack: project.slack_incidents,
+    teams: project.teams_incidents,
+  }
+
+  const actionPoints = project.action_points.slice(0, MAX_ACTION_POINTS)
+
+  const categoryCounts = new Map(project.incident_categories.map((c) => [c.category, c.count]))
+  const categories = CATEGORY_ORDER.map((category) => ({
+    category, count: categoryCounts.get(category) ?? 0,
+  }))
 
   return (
     <Link
@@ -88,7 +74,7 @@ export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
               <p className="text-[15px] font-semibold text-foreground">{project.name}</p>
               <SeverityBadge severity={mapAiPriorityToSeverity(project.severity)} />
             </div>
-            <p className="text-sm text-muted-foreground">{project.description}</p>
+            <p className="text-sm">{project.summary}</p>
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto lg:flex-nowrap">
@@ -126,35 +112,45 @@ export function ProjectSummaryCard({ project }: ProjectSummaryCardProps) {
 
         <div className="flex w-full flex-col gap-4 lg:flex-row lg:flex-wrap">
           <SectionCard title="Action Points" className="flex flex-col lg:w-[506px] lg:shrink-0">
-            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start">
-              {chunk(actionPoints, 3).map((column, columnIndex) => (
-                <div key={columnIndex} className="flex shrink-0 flex-col gap-1">
-                  {column.map((point) => (
-                    <div key={point} className="flex items-center gap-2">
-                      <span aria-hidden className="size-[5px] shrink-0 rounded-full bg-foreground" />
-                      <p className="whitespace-nowrap text-sm text-foreground">{point}</p>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+            {actionPoints.length === 0 ? (
+              <p className="text-sm text-slate-500">No open action points right now.</p>
+            ) : (
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start">
+                {chunk(actionPoints, 3).map((column, columnIndex) => (
+                  <div key={columnIndex} className="flex min-w-0 flex-1 flex-col gap-2">
+                    {column.map((point) => (
+                      <div key={point} className="flex min-w-0 items-start gap-2">
+                        <span
+                          aria-hidden
+                          className="mt-1.5 size-[5px] shrink-0 rounded-full bg-foreground"
+                        />
+                        <p className="min-w-0 break-words text-sm text-foreground">{point}</p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
           </SectionCard>
 
           <SectionCard title="Incidents by category" className="flex flex-col lg:w-[593px] lg:shrink-0">
             <div className="grid w-full grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3">
-              {categories.map(({ category, count }) => (
-                <div key={category} className="flex min-w-0 items-center gap-2">
-                  <img
-                    src={CATEGORY_ICON[category] ?? FALLBACK_ICON}
-                    alt=""
-                    className="size-3.5 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <p className="min-w-0 text-sm text-foreground">
-                    <span className="font-semibold">{count}</span> <span>{category}</span>
-                  </p>
-                </div>
-              ))}
+              {categories.map(({ category, count }) => {
+                const meta = CATEGORY_META[category]
+                return (
+                  <div key={category} className="flex min-w-0 items-center gap-2">
+                    <img
+                      src={meta.icon}
+                      alt=""
+                      className="size-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <p className="min-w-0 text-sm text-foreground">
+                      <span className="font-semibold">{count}</span> <span>{meta.label}</span>
+                    </p>
+                  </div>
+                )
+              })}
             </div>
           </SectionCard>
         </div>
