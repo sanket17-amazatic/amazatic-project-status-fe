@@ -19,11 +19,12 @@ import {
 } from '@/hooks/useTeamsChannels'
 import { useSlackChannels } from '@/hooks/useSlackChannels'
 import { HealthBadge } from '@/components/HealthBadge'
+import { Chip } from '@/components/Chip'
 import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import {
   Dialog,
   DialogContent,
@@ -323,21 +324,11 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
       ) : (
         <div className="flex flex-wrap gap-2">
           {channels.map((channel) => (
-            <Badge
+            <Chip
               key={channel.id}
-              variant="secondary"
-              className="h-[30px] max-w-full gap-2.5 rounded-full bg-[#f5f5f5] px-3 text-[13px] font-medium text-black hover:bg-[#f5f5f5]"
-            >
-              <span className="min-w-0 truncate">#{channel.channel_name || channel.channel_id}</span>
-              <button
-                type="button"
-                aria-label={`Remove ${channel.channel_name || channel.channel_id}`}
-                className="text-slate-500 transition-colors hover:text-black"
-                onClick={() => setRemoveTarget(channel)}
-              >
-                <X className="size-[15px]" aria-hidden="true" />
-              </button>
-            </Badge>
+              label={`#${channel.channel_name || channel.channel_id}`}
+              onRemove={() => setRemoveTarget(channel)}
+            />
           ))}
         </div>
       )}
@@ -381,7 +372,7 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
  * what's already been auto-discovered via message history.
  */
 function SlackChannelsSection({ integrationId }: { integrationId: number }) {
-  const { data: channels, isLoading } = useSlackChannels(integrationId)
+  const { data: channels, isLoading, isError, refetch } = useSlackChannels(integrationId)
 
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-4">
@@ -389,6 +380,15 @@ function SlackChannelsSection({ integrationId }: { integrationId: number }) {
 
       {isLoading ? (
         <ShimmerContentBlock mode="light" items={1} loading />
+      ) : isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Couldn't load Slack channels.</AlertTitle>
+          <AlertAction>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              Try again
+            </Button>
+          </AlertAction>
+        </Alert>
       ) : channels.length === 0 ? (
         <p className="text-xs text-slate-500">
           No channels seen yet — they'll appear here once messages come in.
@@ -396,15 +396,7 @@ function SlackChannelsSection({ integrationId }: { integrationId: number }) {
       ) : (
         <div className="flex flex-wrap gap-2">
           {channels.map((channel) => (
-            <Badge
-              key={channel.channel_id}
-              variant="secondary"
-              className="h-[30px] max-w-full gap-2.5 rounded-full bg-[#f5f5f5] px-3 text-[13px] font-medium text-black hover:bg-[#f5f5f5]"
-            >
-              <span className="min-w-0 truncate">
-                #{channel.channel_name || channel.channel_id}
-              </span>
-            </Badge>
+            <Chip key={channel.channel_id} label={`#${channel.channel_name || channel.channel_id}`} />
           ))}
         </div>
       )}

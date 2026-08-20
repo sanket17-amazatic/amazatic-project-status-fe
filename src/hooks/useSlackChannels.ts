@@ -18,5 +18,10 @@ export function useSlackChannels(integrationId: number) {
     queryKey: ['slack-channels', integrationId],
     queryFn: () => getJson<SlackChannel[]>(`/api/integrations/${integrationId}/slack-channels/`),
   })
-  return { data: query.data ?? [], isLoading: query.isLoading }
+  return {
+    data: query.data ?? [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
+  }
 }
