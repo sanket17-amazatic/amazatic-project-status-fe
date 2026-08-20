@@ -53,8 +53,10 @@ export function EvidenceDrawer({ incident, jiraBaseUrl, open, onOpenChange }: Ev
     >
       <DialogContent className="max-h-[85vh] w-[calc(100%-2rem)] max-w-[700px] overflow-y-auto sm:max-w-[700px]">
         <DialogHeader>
-          <div className="flex items-center gap-3">
-            <DialogTitle>{incident.ai_summary}</DialogTitle>
+          <div className="flex items-start justify-between gap-3 pr-8">
+            <DialogTitle className="flex-1 text-left font-semibold leading-snug">
+              {incident.ai_summary}
+            </DialogTitle>
             <SeverityBadge severity={mapAiPriorityToSeverity(incident.ai_priority)} />
           </div>
           <DialogDescription>{incident.ai_reasoning}</DialogDescription>
@@ -64,15 +66,23 @@ export function EvidenceDrawer({ incident, jiraBaseUrl, open, onOpenChange }: Ev
           <p className="text-sm text-muted-foreground">No evidence recorded for this incident.</p>
         ) : (
           <Tabs value={activeTab} onValueChange={(value) => setTab(value as typeof tab)} className="flex flex-col gap-3">
-            <TabsList>
-              {hasMessage && <TabsTrigger value="message">{`${messageSourceLabel} Evidence`}</TabsTrigger>}
-              {hasJira && <TabsTrigger value="jira">{`Jira Evidence (${incident.jira_ticket_keys.length})`}</TabsTrigger>}
+            <TabsList variant="line" className="w-full justify-start gap-4 border-b border-border">
+              {hasMessage && (
+                <TabsTrigger value="message" className="flex-none grow-0 after:bg-sidebar-primary">
+                  {`${messageSourceLabel} Evidence (1)`}
+                </TabsTrigger>
+              )}
+              {hasJira && (
+                <TabsTrigger value="jira" className="flex-none grow-0 after:bg-sidebar-primary">
+                  {`Jira Evidence (${incident.jira_ticket_keys.length})`}
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {hasMessage && (
               <TabsContent value="message" className="flex flex-col gap-3">
                 <div className="flex w-full flex-col gap-2 rounded-sm border border-border p-3">
-                  <div className="flex flex-col gap-2 rounded-md bg-muted p-2">
+                  <div className="flex flex-col gap-2 rounded-md bg-sidebar-primary/10 p-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Hash className="size-3 shrink-0 text-foreground" aria-hidden="true" />

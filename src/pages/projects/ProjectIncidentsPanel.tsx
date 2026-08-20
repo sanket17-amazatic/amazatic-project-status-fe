@@ -165,57 +165,59 @@ export function ProjectIncidentsPanel({ projectId }: { projectId: number }) {
 
       {!isLoading && !isError && (
         <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Incident</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Evidence</TableHead>
-                <TableHead>Detected</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {incidents.map((incident) => (
-                <TableRow
-                  key={incident.id}
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => openEvidence(incident)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') openEvidence(incident)
-                  }}
-                  className="cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-                >
-                  <TableCell
-                    className="max-w-[360px] truncate font-medium text-primary"
-                    title={incident.ai_summary}
-                  >
-                    {incident.ai_summary}
-                  </TableCell>
-                  <TableCell>
-                    <SeverityBadge severity={mapAiPriorityToSeverity(incident.ai_priority)} />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      {incident.sources.map((sourceKey) => (
-                        <img
-                          key={sourceKey}
-                          src={SOURCE_META[sourceKey].icon}
-                          alt={SOURCE_META[sourceKey].label}
-                          className="size-4 shrink-0"
-                        />
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>{incident.evidence}</TableCell>
-                  <TableCell className="text-slate-500">
-                    {formatIncidentTimestamp(incident.created_at)}
-                  </TableCell>
+          <div className="overflow-hidden rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableHead>Incident</TableHead>
+                  <TableHead>Severity</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Evidence</TableHead>
+                  <TableHead>Detected</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {incidents.map((incident) => (
+                  <TableRow
+                    key={incident.id}
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => openEvidence(incident)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') openEvidence(incident)
+                    }}
+                    className="cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                  >
+                    <TableCell
+                      className="max-w-[360px] truncate py-3 font-normal text-foreground"
+                      title={incident.ai_summary}
+                    >
+                      {incident.ai_summary}
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <SeverityBadge severity={mapAiPriorityToSeverity(incident.ai_priority)} />
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <div className="flex items-center gap-1.5">
+                        {incident.sources.map((sourceKey) => (
+                          <img
+                            key={sourceKey}
+                            src={SOURCE_META[sourceKey].icon}
+                            alt={SOURCE_META[sourceKey].label}
+                            className="size-4 shrink-0"
+                          />
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3">{incident.evidence}</TableCell>
+                    <TableCell className="py-3 text-slate-500">
+                      {formatIncidentTimestamp(incident.created_at)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
           <EvidenceDrawer
             incident={selectedIncident}
