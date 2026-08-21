@@ -19,7 +19,6 @@ export interface OrgUser {
   role: UserRole
   status: UserStatus
   last_login: string | null
-  project_count: number
   projects: OrgUserProject[]
 }
 
@@ -52,7 +51,15 @@ export function useOrgUsers({ search, role, status, page }: UseOrgUsersParams) {
       if (status) params.set('status', status)
       if (page && page > 1) params.set('page', String(page))
       const qs = params.toString()
-      return getJson<PaginatedResponse<OrgUser>>(`/api/org-users/${qs ? `?${qs}` : ''}`)
+      return getJson<PaginatedResponse<OrgUser>>(`/api/org-users/${qs ? `?${qs}` : ''}`).then(
+        (response) => ({
+          ...response,
+          // Defensive against deploy-order skew with the backend PR adding
+          // `projects` to UserManagementSerializer — until that's live too,
+          // the API returns users with no `projects` key at all.
+          results: response.results.map((user) => ({ ...user, projects: user.projects ?? [] })),
+        })
+      )
     },
   })
 
