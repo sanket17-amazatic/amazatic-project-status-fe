@@ -381,6 +381,25 @@ function SlackChannelsSection({ integrationId }: { integrationId: number }) {
 
       {isLoading ? (
         <ShimmerContentBlock mode="light" items={1} loading />
+      ) : channels.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            {channels.map((channel) => (
+              <Chip
+                key={channel.channel_id}
+                label={`#${channel.channel_name || channel.channel_id}`}
+              />
+            ))}
+          </div>
+          {isError && (
+            <p className="text-xs text-slate-500">
+              Couldn't refresh — showing the last-loaded list.{' '}
+              <button type="button" onClick={() => refetch()} className="underline">
+                Retry
+              </button>
+            </p>
+          )}
+        </div>
       ) : isError ? (
         <Alert variant="destructive">
           <AlertTitle>Couldn't load Slack channels.</AlertTitle>
@@ -390,16 +409,10 @@ function SlackChannelsSection({ integrationId }: { integrationId: number }) {
             </Button>
           </AlertAction>
         </Alert>
-      ) : channels.length === 0 ? (
+      ) : (
         <p className="text-xs text-slate-500">
           No channels seen yet — they'll appear here once messages come in.
         </p>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {channels.map((channel) => (
-            <Chip key={channel.channel_id} label={`#${channel.channel_name || channel.channel_id}`} />
-          ))}
-        </div>
       )}
     </div>
   )
