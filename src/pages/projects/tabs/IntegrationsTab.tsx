@@ -327,6 +327,7 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
             <Chip
               key={channel.id}
               label={`#${channel.channel_name || channel.channel_id}`}
+              name={channel.channel_name || channel.channel_id}
               onRemove={() => setRemoveTarget(channel)}
             />
           ))}
