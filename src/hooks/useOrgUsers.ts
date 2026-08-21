@@ -5,6 +5,11 @@ import type { UserRole } from '@/stores/authStore'
 
 export type UserStatus = 'active' | 'inactive'
 
+export interface OrgUserProject {
+  project_name: string
+  email: string
+}
+
 export interface OrgUser {
   id: number
   email: string
@@ -15,6 +20,7 @@ export interface OrgUser {
   status: UserStatus
   last_login: string | null
   project_count: number
+  projects: OrgUserProject[]
 }
 
 interface PaginatedResponse<T> {

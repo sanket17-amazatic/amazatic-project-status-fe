@@ -140,38 +140,55 @@ export default function UsersPage() {
 
       {!isLoading && !isError && (
         <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Projects</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Active</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow
-                  key={user.id}
-                  className="cursor-pointer hover:bg-slate-100"
-                  onClick={() => setEditingUser(user)}
-                >
-                  <TableCell className="font-medium text-foreground">
-                    {user.name || user.email}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{ROLE_LABELS[user.role]}</TableCell>
-                  <TableCell>{user.project_count}</TableCell>
-                  <TableCell className="capitalize">{user.status}</TableCell>
-                  <TableCell className="text-slate-500">
-                    {formatRelativeTime(user.last_login)}
-                  </TableCell>
+          <div className="overflow-hidden rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableHead className="py-3">User</TableHead>
+                  <TableHead className="py-3">Email</TableHead>
+                  <TableHead className="py-3">Role</TableHead>
+                  <TableHead className="py-3">Projects and Emails</TableHead>
+                  <TableHead className="py-3">Status</TableHead>
+                  <TableHead className="py-3">Last Active</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow
+                    key={user.id}
+                    className="cursor-pointer hover:bg-slate-100"
+                    onClick={() => setEditingUser(user)}
+                  >
+                    <TableCell className="py-3 font-medium text-foreground">
+                      {user.name || user.email}
+                    </TableCell>
+                    <TableCell className="py-3">{user.email}</TableCell>
+                    <TableCell className="py-3">{ROLE_LABELS[user.role]}</TableCell>
+                    <TableCell className="py-3 whitespace-normal">
+                      {user.projects.length === 0 ? (
+                        <span className="text-slate-400">—</span>
+                      ) : (
+                        <div className="flex flex-col gap-0.5">
+                          {user.projects.map((project, index) => (
+                            <p key={`${project.project_name}-${index}`}>
+                              <span className="font-medium text-foreground">
+                                {project.project_name}
+                              </span>{' '}
+                              - {project.email}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3 capitalize">{user.status}</TableCell>
+                    <TableCell className="py-3 text-slate-500">
+                      {formatRelativeTime(user.last_login)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
           {users.length === 0 && (
             <p className="py-12 text-center text-sm text-slate-500">
