@@ -12,36 +12,13 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { X } from 'lucide-react'
+import { Chip } from '@/components/Chip'
 import { ShimmerContentBlock } from 'shimmer-effects-react'
 import { AddActionLink } from './AddActionLink'
 import { ProjectNameField } from './ProjectNameField'
 import { AddManagerModal } from './AddManagerModal'
 import { AddTeamMembersModal } from './AddTeamMembersModal'
-
-/** Chip pill matching the reference design's team-member chip — reuses Badge the same way MemberTypeahead already does elsewhere in this repo, just with the reference's exact spacing/color values. */
-function MemberChip({ label, onRemove }: { label: string; onRemove?: () => void }) {
-  return (
-    <Badge
-      variant="secondary"
-      className="h-[30px] gap-2.5 rounded-full bg-[#f5f5f5] px-3 text-[13px] font-medium text-black hover:bg-[#f5f5f5]"
-    >
-      {label}
-      {onRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={`Remove ${label}`}
-          className="text-slate-500 transition-colors hover:text-black"
-        >
-          <X className="size-[15px]" aria-hidden="true" />
-        </button>
-      )}
-    </Badge>
-  )
-}
 
 /**
  * PROJ-02: management reassigns the PM; management or the project's own PM
@@ -100,7 +77,7 @@ export function TeamTab({ project }: { project: Project }) {
           </div>
           <div className="flex min-h-[132px] flex-wrap items-start gap-2 rounded-sm border border-border p-[13px]">
             {members.map((member) => (
-              <MemberChip
+              <Chip
                 key={member.id}
                 label={member.user_name || member.user_email}
                 onRemove={

@@ -17,12 +17,14 @@ import {
   useRemoveTeamsChannel,
   type TeamsChannel,
 } from '@/hooks/useTeamsChannels'
+import { useSlackChannels } from '@/hooks/useSlackChannels'
 import { HealthBadge } from '@/components/HealthBadge'
+import { Chip } from '@/components/Chip'
 import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertTitle, AlertAction } from '@/components/ui/alert'
 import {
   Dialog,
   DialogContent,
@@ -322,21 +324,12 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
       ) : (
         <div className="flex flex-wrap gap-2">
           {channels.map((channel) => (
-            <Badge
+            <Chip
               key={channel.id}
-              variant="secondary"
-              className="h-[30px] max-w-full gap-2.5 rounded-full bg-[#f5f5f5] px-3 text-[13px] font-medium text-black hover:bg-[#f5f5f5]"
-            >
-              <span className="min-w-0 truncate">#{channel.channel_name || channel.channel_id}</span>
-              <button
-                type="button"
-                aria-label={`Remove ${channel.channel_name || channel.channel_id}`}
-                className="text-slate-500 transition-colors hover:text-black"
-                onClick={() => setRemoveTarget(channel)}
-              >
-                <X className="size-[15px]" aria-hidden="true" />
-              </button>
-            </Badge>
+              label={`#${channel.channel_name || channel.channel_id}`}
+              name={channel.channel_name || channel.channel_id}
+              onRemove={() => setRemoveTarget(channel)}
+            />
           ))}
         </div>
       )}
@@ -373,11 +366,65 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
 }
 
 /**
+ * Read-only list of channels this project's Slack connection has actually
+ * seen messages from (see `ProjectIntegrationViewSet.slack_channels`) — no
+ * add/remove here, unlike Teams: Slack has no channel-registry model to
+ * manage (D-07 — no manual channel entry), so this is purely a display of
+ * what's already been auto-discovered via message history.
+ */
+function SlackChannelsSection({ integrationId }: { integrationId: number }) {
+  const { data: channels, isLoading, isError, refetch } = useSlackChannels(integrationId)
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-border pt-4">
+      <p className="text-xs font-semibold text-slate-500">Slack Channel</p>
+
+      {isLoading ? (
+        <ShimmerContentBlock mode="light" items={1} loading />
+      ) : channels.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            {channels.map((channel) => (
+              <Chip
+                key={channel.channel_id}
+                label={`#${channel.channel_name || channel.channel_id}`}
+              />
+            ))}
+          </div>
+          {isError && (
+            <p className="text-xs text-slate-500">
+              Couldn't refresh — showing the last-loaded list.{' '}
+              <button type="button" onClick={() => refetch()} className="underline">
+                Retry
+              </button>
+            </p>
+          )}
+        </div>
+      ) : isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Couldn't load Slack channels.</AlertTitle>
+          <AlertAction>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              Try again
+            </Button>
+          </AlertAction>
+        </Alert>
+      ) : (
+        <p className="text-xs text-slate-500">
+          No channels seen yet — they'll appear here once messages come in.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
  * PROJ-03/ADMIN-02: Jira and Teams both get an on/off toggle plus an inline
  * config form (D-08 — Jira's token stays wizard-only, everything else is
  * editable here); Slack is a DISPLAY SHELL ONLY (D-07 — no manual channel
  * entry, channels are auto-discovered once the app is installed in
- * Phase 4/7).
+ * Phase 4/7) — SlackChannelsSection above shows those auto-discovered
+ * channels, read-only.
  */
 export function IntegrationsTab({ project }: { project: Project }) {
   const { canManage } = useCanManageProject(project)
@@ -507,13 +554,16 @@ export function IntegrationsTab({ project }: { project: Project }) {
         }
       >
         {slackOwn?.slack_installed_at ? (
-          <p className="text-sm text-slate-600">
-            Installed in{' '}
-            <span className="font-medium text-foreground">
-              {slackOwn.slack_team_name || 'the Slack workspace'}
-            </span>{' '}
-            &middot; {formatRelativeTime(slackOwn.slack_installed_at)}
-          </p>
+          <>
+            <p className="text-sm text-slate-600">
+              Installed in{' '}
+              <span className="font-medium text-foreground">
+                {slackOwn.slack_team_name || 'the Slack workspace'}
+              </span>{' '}
+              &middot; {formatRelativeTime(slackOwn.slack_installed_at)}
+            </p>
+            <SlackChannelsSection integrationId={slackOwn.id} />
+          </>
         ) : (
           <>
             <p className="text-sm text-slate-500">Not installed</p>
