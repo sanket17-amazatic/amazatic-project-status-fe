@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { Project } from '@/hooks/useProjects'
 import { useCanManageProject } from '@/hooks/useCanManageProject'
@@ -35,10 +36,12 @@ import {
   DialogClose,
 } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { X } from 'lucide-react'
+import { CheckCircle, X } from 'lucide-react'
 import { ShimmerButton, ShimmerContentBlock } from 'shimmer-effects-react'
 import { formatRelativeTime } from '@/lib/format'
 import { ConnectedSourceCard } from './ConnectedSourceCard'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
 function baseUrlError(value: string): string | null {
   if (!value) return 'Required'
@@ -388,7 +391,7 @@ function SlackChannelsSection({ integrationId }: { integrationId: number }) {
 
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-4">
-      <p className="text-xs font-semibold text-slate-500">Slack Channel</p>
+      <p className="text-[13px] font-medium text-black">Slack Channel</p>
 
       {isLoading ? (
         <ShimmerContentBlock mode="light" items={1} loading />
@@ -441,6 +444,20 @@ export function IntegrationsTab({ project }: { project: Project }) {
   const { canManage } = useCanManageProject(project)
   const projectId = String(project.id)
 
+  // slack_oauth_callback (backend) redirects the browser back here with
+  // this param once the OAuth install completes — a real page load (not an
+  // SPA navigation), so useIntegrations below already fetches fresh data
+  // on mount without any extra invalidation. Just surface the toast and
+  // drop the param so a later refresh doesn't show it again.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('slack_connected') !== '1') return
+    toast.success('Slack connected successfully!')
+    const next = new URLSearchParams(searchParams)
+    next.delete('slack_connected')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
   const { data: integrations, isLoading: integrationsLoading } = useIntegrations(projectId)
   const removeIntegration = useRemoveIntegration(projectId)
   const [removeTargetId, setRemoveTargetId] = useState<number | null>(null)
@@ -468,10 +485,15 @@ export function IntegrationsTab({ project }: { project: Project }) {
   }
 
   const jira = integrations.find((integration) => integration.type === 'jira')
-  // slack_client is intentionally not rendered here — the reference design
-  // shows a single "Slack" card, and slack_own is this project's primary
-  // workspace connection.
-  const slackOwn = integrations.find((integration) => integration.type === 'slack_own')
+  // Single "Slack" card regardless of which OAuth flow was used to install
+  // it — slack_own (Amazatic's own workspace) and slack_client (a client's
+  // workspace) both save onto their own ProjectIntegration row (see
+  // slack_install/slack_oauth_callback, backend), but this project only
+  // ever has one of the two connected at a time in practice, so either type
+  // satisfies "is Slack connected for this project".
+  const slack = integrations.find(
+    (integration) => integration.type === 'slack_own' || integration.type === 'slack_client'
+  )
   const teams = integrations.find((integration) => integration.type === 'teams')
 
   function integrationRowActions(
@@ -560,21 +582,37 @@ export function IntegrationsTab({ project }: { project: Project }) {
         description="Conversation & collaboration analysis"
         status={
           <>
-            <HealthBadge status={slackOwn?.health_status ?? 'not_configured'} />
-            {integrationRowActions(slackOwn, slackCheckHealth)}
+            <HealthBadge status={slack?.health_status ?? 'not_configured'} />
+            {slack?.slack_installed_at ? (
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="text-sm font-medium text-green-600">Connected</span>
+                <CheckCircle className="size-4 text-green-600" aria-hidden="true" />
+              </div>
+            ) : (
+              canManage && (
+                <Button
+                  variant="outline"
+                  className="h-9 w-[115px] shrink-0 border-primary bg-transparent text-sm text-primary hover:bg-primary/5 hover:text-primary"
+                  asChild
+                >
+                  <a href={`${API_BASE_URL}/slack/install/${project.id}/slack_client/`}>Connect</a>
+                </Button>
+              )
+            )}
+            {integrationRowActions(slack, slackCheckHealth)}
           </>
         }
       >
-        {slackOwn?.slack_installed_at ? (
+        {slack?.slack_installed_at ? (
           <>
             <p className="text-sm text-slate-600">
               Installed in{' '}
               <span className="font-medium text-foreground">
-                {slackOwn.slack_team_name || 'the Slack workspace'}
+                {slack.slack_team_name || 'the Slack workspace'}
               </span>{' '}
-              &middot; {formatRelativeTime(slackOwn.slack_installed_at)}
+              &middot; {formatRelativeTime(slack.slack_installed_at)}
             </p>
-            <SlackChannelsSection integrationId={slackOwn.id} />
+            <SlackChannelsSection integrationId={slack.id} />
           </>
         ) : (
           <>
