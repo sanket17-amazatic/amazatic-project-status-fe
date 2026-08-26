@@ -283,9 +283,15 @@ function TeamsConfigForm({
  * always has its own row even with zero channels, so this renders as soon
  * as the integration row exists, independent of whether team id is set yet.
  */
-function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
+function TeamsChannelsSection({
+  integrationId,
+  projectId,
+}: {
+  integrationId: number
+  projectId: string
+}) {
   const { data: channels, isLoading } = useTeamsChannels(integrationId)
-  const addChannel = useAddTeamsChannel(integrationId)
+  const addChannel = useAddTeamsChannel(integrationId, projectId)
   const removeChannel = useRemoveTeamsChannel(integrationId)
   const [input, setInput] = useState('')
   // Confirm before deleting — unlike a toggle, this isn't reversible from
@@ -618,7 +624,7 @@ export function IntegrationsTab({ project }: { project: Project }) {
                   )
                 }
               />
-              <TeamsChannelsSection integrationId={teams.id} />
+              <TeamsChannelsSection integrationId={teams.id} projectId={projectId} />
             </>
           ) : (
             <p className="border-t border-border pt-4 text-xs text-slate-500">
