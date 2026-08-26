@@ -31,8 +31,17 @@ export function useTeamsChannels(integrationId: number) {
  * decides which by checking for a URL scheme (case-insensitive — a pasted
  * `HTTPS://...` link is still a link), same "paste or type" UX as the
  * Django admin's TeamsChannelInlineForm.
+ *
+ * `projectId` is only needed to invalidate `['integrations', projectId]`
+ * alongside the channels list — the first channel added to a not-yet-
+ * connected integration also sets its `teams_team_id`/`teams_team_name`
+ * server-side (ProjectIntegrationViewSet._maybe_derive_team_from_channel_
+ * link), and that lives on the integrations query, not the channels one.
+ * Without this, TeamsConfigForm's "Connected to team X" status stays
+ * stale ("Not connected...") until something unrelated refetches
+ * integrations.
  */
-export function useAddTeamsChannel(integrationId: number) {
+export function useAddTeamsChannel(integrationId: number, projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (input: string) => {
@@ -44,6 +53,7 @@ export function useAddTeamsChannel(integrationId: number) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams-channels', integrationId] })
+      queryClient.invalidateQueries({ queryKey: ['integrations', projectId] })
       toast.success('Channel added')
     },
     onError: (error: unknown) => {
