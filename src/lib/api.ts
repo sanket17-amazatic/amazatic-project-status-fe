@@ -8,7 +8,7 @@
  * scheme.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { Project } from '@/hooks/useProjects'
@@ -19,6 +19,7 @@ import {
   type TeamsChannel,
 } from '@/hooks/useTeamsChannels'
 import { useSlackChannels } from '@/hooks/useSlackChannels'
+import { API_BASE_URL } from '@/lib/api'
 import { HealthBadge } from '@/components/HealthBadge'
 import { Chip } from '@/components/Chip'
 import { Switch } from '@/components/ui/switch'
@@ -40,8 +41,6 @@ import { CheckCircle, X } from 'lucide-react'
 import { ShimmerButton, ShimmerContentBlock } from 'shimmer-effects-react'
 import { formatRelativeTime } from '@/lib/format'
 import { ConnectedSourceCard } from './ConnectedSourceCard'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
 function baseUrlError(value: string): string | null {
   if (!value) return 'Required'
@@ -449,9 +448,18 @@ export function IntegrationsTab({ project }: { project: Project }) {
   // SPA navigation), so useIntegrations below already fetches fresh data
   // on mount without any extra invalidation. Just surface the toast and
   // drop the param so a later refresh doesn't show it again.
+  //
+  // hasHandledSlackRedirect guards against firing twice (PR #20 review):
+  // React 18 StrictMode double-invokes effects in dev, and both
+  // invocations see the same pre-strip `searchParams` snapshot (the first
+  // invocation's setSearchParams hasn't re-rendered yet) — without the
+  // guard that's a duplicate toast and a duplicate setSearchParams call.
   const [searchParams, setSearchParams] = useSearchParams()
+  const hasHandledSlackRedirect = useRef(false)
   useEffect(() => {
+    if (hasHandledSlackRedirect.current) return
     if (searchParams.get('slack_connected') !== '1') return
+    hasHandledSlackRedirect.current = true
     toast.success('Slack connected successfully!')
     const next = new URLSearchParams(searchParams)
     next.delete('slack_connected')
@@ -485,15 +493,17 @@ export function IntegrationsTab({ project }: { project: Project }) {
   }
 
   const jira = integrations.find((integration) => integration.type === 'jira')
-  // Single "Slack" card regardless of which OAuth flow was used to install
-  // it — slack_own (Amazatic's own workspace) and slack_client (a client's
-  // workspace) both save onto their own ProjectIntegration row (see
-  // slack_install/slack_oauth_callback, backend), but this project only
-  // ever has one of the two connected at a time in practice, so either type
-  // satisfies "is Slack connected for this project".
-  const slack = integrations.find(
-    (integration) => integration.type === 'slack_own' || integration.type === 'slack_client'
-  )
+  // slack_own is deliberately not read here (PR #20 review): matching
+  // either type made this card's result depend on unspecified queryset
+  // ordering when both existed, and — more concretely — meant any project
+  // with a pre-existing installed slack_own row could never reach the
+  // slack_client Connect button below (slack_own's own installed status
+  // always won the match first). The Connect button only ever installs
+  // slack_client, so that's the only type this card looks at; a project
+  // with a slack_own connection instead isn't shown here at all — giving
+  // slack_own its own card is a separate follow-up, not a fix-in-place fit
+  // for this bug pass.
+  const slack = integrations.find((integration) => integration.type === 'slack_client')
   const teams = integrations.find((integration) => integration.type === 'teams')
 
   function integrationRowActions(
@@ -584,10 +594,14 @@ export function IntegrationsTab({ project }: { project: Project }) {
           <>
             <HealthBadge status={slack?.health_status ?? 'not_configured'} />
             {slack?.slack_installed_at ? (
-              <div className="flex shrink-0 items-center gap-1.5">
-                <span className="text-sm font-medium text-green-600">Connected</span>
-                <CheckCircle className="size-4 text-green-600" aria-hidden="true" />
-              </div>
+              // Soft-badge tokens (tinted bg + matching text), same pair
+              // StatusBadge's "completed" state uses — not a bare
+              // text-green-600 (PR #20 review: CLAUDE.md's semantic
+              // status-color convention, not the --primary accent).
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
+                <CheckCircle className="size-3.5" aria-hidden="true" />
+                Connected
+              </span>
             ) : (
               canManage && (
                 <Button

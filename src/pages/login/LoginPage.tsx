@@ -3,14 +3,13 @@ import { useSearchParams } from 'react-router-dom'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { ShimmerButton } from 'shimmer-effects-react'
+import { API_BASE_URL } from '@/lib/api'
 import amazaticLogo from '@/assets/login/amazatic-logo.svg'
 import diamondGraphic from '@/assets/login/diamond-graphic.png'
 import vectorLine from '@/assets/login/vector-line.svg'
 import iconAi from '@/assets/login/icon-ai.svg'
 import iconEvidence from '@/assets/login/icon-evidence.svg'
 import googleG from '@/assets/login/google-g.svg'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
 /** Figma-specified brand green for this screen only (node 71:3786) — not the
  * app-wide --primary token, which stays blue-600 everywhere else. */
