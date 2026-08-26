@@ -74,6 +74,10 @@ interface UpsertIntegrationInput {
   type: IntegrationType
   enabled?: boolean
   config?: JiraConfig
+  /** `jira_api_token` is write-only server-side (never round-tripped, same
+   * as `teams_client_secret`) — omit it entirely (don't send an empty
+   * string) to leave an already-set token unchanged. */
+  jira_api_token?: string
   /** Azure AD app registration values (D-04) — Teams-only, never sent for
    * other types. `teams_client_secret` is write-only server-side; omit it
    * entirely (don't send an empty string) to leave an already-set secret
@@ -102,6 +106,7 @@ export function useUpsertIntegration(projectId: string) {
       type,
       enabled,
       config,
+      jira_api_token,
       teams_client_id,
       teams_client_secret,
       teams_tenant_id,
@@ -110,6 +115,7 @@ export function useUpsertIntegration(projectId: string) {
       const payload: Omit<UpsertIntegrationInput, 'id' | 'type'> = {}
       if (enabled !== undefined) payload.enabled = enabled
       if (config !== undefined) payload.config = config
+      if (jira_api_token !== undefined) payload.jira_api_token = jira_api_token
       if (teams_client_id !== undefined) payload.teams_client_id = teams_client_id
       if (teams_client_secret !== undefined) payload.teams_client_secret = teams_client_secret
       if (teams_tenant_id !== undefined) payload.teams_tenant_id = teams_tenant_id

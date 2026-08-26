@@ -58,11 +58,15 @@ function projectKeyError(value: string): string | null {
 }
 
 /**
- * Base URL/email/project key for an existing Jira integration row — the
- * fields build_client_from_integration (backend jira_client.py) reads out
- * of `config` to actually call Jira. Token stays wizard-only (D-08); this
- * is the rest of what "Check health" needs to stop 400ing with
- * JiraConfigError.
+ * Base URL/email/project key/API token for an existing Jira integration
+ * row — the fields build_client_from_integration (backend jira_client.py)
+ * reads out of `config` (plus `jira_api_token`) to actually call Jira.
+ * D-08 originally kept the token wizard-only (set once at project
+ * creation, never editable after); that left no way to rotate it or fill
+ * it in for a project that skipped the wizard step, so it's editable here
+ * too now. The token is write-only server-side (never round-tripped) —
+ * blank means "leave whatever's already saved unchanged", same contract as
+ * Teams' client secret below.
  */
 function JiraConfigForm({
   integration,
@@ -70,19 +74,24 @@ function JiraConfigForm({
   saving,
 }: {
   integration: ProjectIntegration
-  onSave: (config: JiraConfig) => void
+  onSave: (
+    fields: { config: JiraConfig; jira_api_token?: string },
+    callbacks: { onSuccess: () => void }
+  ) => void
   saving: boolean
 }) {
   const saved = readJiraConfig(integration.config ?? {})
   const [baseUrl, setBaseUrl] = useState(saved.jira_base_url ?? '')
   const [email, setEmail] = useState(saved.jira_email ?? '')
   const [projectKey, setProjectKey] = useState(saved.jira_project_key ?? '')
+  const [apiToken, setApiToken] = useState('')
   const [touched, setTouched] = useState(false)
 
   const dirty =
     baseUrl !== (saved.jira_base_url ?? '') ||
     email !== (saved.jira_email ?? '') ||
-    projectKey !== (saved.jira_project_key ?? '')
+    projectKey !== (saved.jira_project_key ?? '') ||
+    apiToken !== ''
 
   const errors = {
     baseUrl: baseUrlError(baseUrl),
@@ -94,11 +103,17 @@ function JiraConfigForm({
   function handleSave() {
     setTouched(true)
     if (!valid) return
-    onSave({ jira_base_url: baseUrl, jira_email: email, jira_project_key: projectKey })
+    onSave(
+      {
+        config: { jira_base_url: baseUrl, jira_email: email, jira_project_key: projectKey },
+        jira_api_token: apiToken || undefined,
+      },
+      { onSuccess: () => setApiToken('') }
+    )
   }
 
   return (
-    <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-3">
+    <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-2">
       <div>
         <Label htmlFor={`jira-base-url-${integration.id}`}>Base URL</Label>
         <Input
@@ -111,6 +126,18 @@ function JiraConfigForm({
         {touched && errors.baseUrl && (
           <p className="mt-1 text-xs text-destructive">{errors.baseUrl}</p>
         )}
+      </div>
+      <div>
+        <Label htmlFor={`jira-api-token-${integration.id}`}>API token</Label>
+        <Input
+          id={`jira-api-token-${integration.id}`}
+          type="password"
+          autoComplete="off"
+          placeholder="Leave blank to keep existing"
+          value={apiToken}
+          onChange={(event) => setApiToken(event.target.value)}
+          className="mt-1.5"
+        />
       </div>
       <div>
         <Label htmlFor={`jira-email-${integration.id}`}>Account email</Label>
@@ -137,7 +164,7 @@ function JiraConfigForm({
           <p className="mt-1 text-xs text-destructive">{errors.projectKey}</p>
         )}
       </div>
-      <div className="flex items-end sm:col-span-3 sm:justify-end">
+      <div className="flex items-end sm:col-span-2 sm:justify-end">
         <ShimmerButton mode="light" loading={saving}>
           <Button
             type="button"
@@ -154,16 +181,16 @@ function JiraConfigForm({
 }
 
 /**
- * Azure AD app registration (client id/secret) plus a "Get link to
- * channel" URL paste that fills team id/tenant id server-side (see
- * teams_integration.services.parse_teams_channel_link) — same convenience
- * the Django admin's ProjectIntegrationAdminForm offers, mirrored here so
- * management doesn't need admin access to connect a project's Teams.
- * Client secret and the channel link are one-shot/write-only fields (never
- * round-tripped by the API) — cleared only once the save actually succeeds
- * (via the `onSuccess` callback passed to `onSave`), not unconditionally
- * right after firing the mutation, so a failed save (e.g. a malformed
- * secret rejected server-side) doesn't also throw away what was typed.
+ * Azure AD app registration (client id/secret) for a Teams connection.
+ * There's deliberately no separate "which team" field here — the team is
+ * derived server-side from the first channel link pasted into
+ * TeamsChannelsSection below (ProjectIntegrationViewSet
+ * ._maybe_derive_team_from_channel_link), so connecting is one paste, not
+ * two. Client secret is a one-shot/write-only field (never round-tripped
+ * by the API) — cleared only once the save actually succeeds (via the
+ * `onSuccess` callback passed to `onSave`), not unconditionally right
+ * after firing the mutation, so a failed save (e.g. a malformed secret
+ * rejected server-side) doesn't also throw away what was typed.
  */
 function TeamsConfigForm({
   integration,
@@ -172,22 +199,16 @@ function TeamsConfigForm({
 }: {
   integration: ProjectIntegration
   onSave: (
-    fields: {
-      teams_client_id: string
-      teams_client_secret?: string
-      teams_channel_link?: string
-    },
+    fields: { teams_client_id: string; teams_client_secret?: string },
     callbacks: { onSuccess: () => void }
   ) => void
   saving: boolean
 }) {
   const [clientId, setClientId] = useState(integration.teams_client_id ?? '')
   const [clientSecret, setClientSecret] = useState('')
-  const [channelLink, setChannelLink] = useState('')
   const [touched, setTouched] = useState(false)
 
-  const dirty =
-    clientId !== (integration.teams_client_id ?? '') || clientSecret !== '' || channelLink !== ''
+  const dirty = clientId !== (integration.teams_client_id ?? '') || clientSecret !== ''
   const clientIdInvalid = touched && !clientId
   // No existing client id means this connection has never been configured
   // — there's no previously-saved secret for a blank field to fall back
@@ -200,17 +221,8 @@ function TeamsConfigForm({
     setTouched(true)
     if (!clientId || (secretRequired && !clientSecret)) return
     onSave(
-      {
-        teams_client_id: clientId,
-        teams_client_secret: clientSecret || undefined,
-        teams_channel_link: channelLink || undefined,
-      },
-      {
-        onSuccess: () => {
-          setClientSecret('')
-          setChannelLink('')
-        },
-      }
+      { teams_client_id: clientId, teams_client_secret: clientSecret || undefined },
+      { onSuccess: () => setClientSecret('') }
     )
   }
 
@@ -244,21 +256,11 @@ function TeamsConfigForm({
           {clientSecretInvalid && <p className="mt-1 text-xs text-destructive">Required</p>}
         </div>
       </div>
-      <div>
-        <Label htmlFor={`teams-channel-link-${integration.id}`}>Team channel link</Label>
-        <Input
-          id={`teams-channel-link-${integration.id}`}
-          placeholder='Paste a channel’s "Get link to channel" URL to set the team'
-          value={channelLink}
-          onChange={(event) => setChannelLink(event.target.value)}
-          className="mt-1.5"
-        />
-        <p className="mt-1 text-xs text-slate-500">
-          {integration.teams_team_id
-            ? `Connected to team ${integration.teams_team_name || integration.teams_team_id}`
-            : 'Not connected to a team yet — paste a channel link above.'}
-        </p>
-      </div>
+      <p className="text-xs text-slate-500">
+        {integration.teams_team_id
+          ? `Connected to team ${integration.teams_team_name || integration.teams_team_id}.`
+          : 'Not connected to a team yet — paste a channel link below to connect one and start monitoring it.'}
+      </p>
       <div className="flex justify-end">
         <ShimmerButton mode="light" loading={saving}>
           <Button
@@ -297,11 +299,11 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
 
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-4">
-      <p className="text-xs font-semibold text-slate-500">Teams</p>
+      <p className="text-xs font-semibold text-slate-500">Monitored channels</p>
 
       <div className="flex gap-2">
         <Input
-          placeholder="Paste the channel link"
+          placeholder='Paste a channel’s "Get link to channel" URL to start monitoring it'
           value={input}
           onChange={(event) => setInput(event.target.value)}
           className="flex-1"
@@ -320,7 +322,10 @@ function TeamsChannelsSection({ integrationId }: { integrationId: number }) {
       {isLoading ? (
         <ShimmerContentBlock mode="light" items={1} loading />
       ) : channels.length === 0 ? (
-        <p className="text-xs text-slate-500">No channels yet — add one above.</p>
+        <p className="text-xs text-slate-500">
+          No channels yet — paste a channel link above to start monitoring it. The first one
+          you add also connects this integration to that channel's team.
+        </p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {channels.map((channel) => (
@@ -523,13 +528,14 @@ export function IntegrationsTab({ project }: { project: Project }) {
             <JiraConfigForm
               integration={jira}
               saving={jiraUpsert.isPending || jiraConfigHealthCheck.isPending}
-              onSave={(config) =>
+              onSave={({ config, jira_api_token }, callbacks) =>
                 jiraUpsert.mutate(
-                  { id: jira.id, type: 'jira', config },
+                  { id: jira.id, type: 'jira', config, jira_api_token },
                   {
                     onSuccess: () => {
                       toast.success('Jira config saved')
                       jiraConfigHealthCheck.mutate(jira.id)
+                      callbacks.onSuccess()
                     },
                   }
                 )
