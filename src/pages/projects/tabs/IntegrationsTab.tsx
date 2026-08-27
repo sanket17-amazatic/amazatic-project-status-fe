@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import type { Project } from '@/hooks/useProjects'
 import { useCanManageProject } from '@/hooks/useCanManageProject'
@@ -18,6 +19,7 @@ import {
   type TeamsChannel,
 } from '@/hooks/useTeamsChannels'
 import { useSlackChannels } from '@/hooks/useSlackChannels'
+import { API_BASE_URL } from '@/lib/api'
 import { HealthBadge } from '@/components/HealthBadge'
 import { Chip } from '@/components/Chip'
 import { Switch } from '@/components/ui/switch'
@@ -35,7 +37,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { X } from 'lucide-react'
+import { CheckCircle, X } from 'lucide-react'
 import { ShimmerButton, ShimmerContentBlock } from 'shimmer-effects-react'
 import { formatRelativeTime } from '@/lib/format'
 import { ConnectedSourceCard } from './ConnectedSourceCard'
@@ -388,7 +390,7 @@ function SlackChannelsSection({ integrationId }: { integrationId: number }) {
 
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-4">
-      <p className="text-xs font-semibold text-slate-500">Slack Channel</p>
+      <p className="text-[13px] font-medium text-black">Slack Channel</p>
 
       {isLoading ? (
         <ShimmerContentBlock mode="light" items={1} loading />
@@ -441,6 +443,29 @@ export function IntegrationsTab({ project }: { project: Project }) {
   const { canManage } = useCanManageProject(project)
   const projectId = String(project.id)
 
+  // slack_oauth_callback (backend) redirects the browser back here with
+  // this param once the OAuth install completes — a real page load (not an
+  // SPA navigation), so useIntegrations below already fetches fresh data
+  // on mount without any extra invalidation. Just surface the toast and
+  // drop the param so a later refresh doesn't show it again.
+  //
+  // hasHandledSlackRedirect guards against firing twice (PR #20 review):
+  // React 18 StrictMode double-invokes effects in dev, and both
+  // invocations see the same pre-strip `searchParams` snapshot (the first
+  // invocation's setSearchParams hasn't re-rendered yet) — without the
+  // guard that's a duplicate toast and a duplicate setSearchParams call.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const hasHandledSlackRedirect = useRef(false)
+  useEffect(() => {
+    if (hasHandledSlackRedirect.current) return
+    if (searchParams.get('slack_connected') !== '1') return
+    hasHandledSlackRedirect.current = true
+    toast.success('Slack connected successfully!')
+    const next = new URLSearchParams(searchParams)
+    next.delete('slack_connected')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
   const { data: integrations, isLoading: integrationsLoading } = useIntegrations(projectId)
   const removeIntegration = useRemoveIntegration(projectId)
   const [removeTargetId, setRemoveTargetId] = useState<number | null>(null)
@@ -468,10 +493,17 @@ export function IntegrationsTab({ project }: { project: Project }) {
   }
 
   const jira = integrations.find((integration) => integration.type === 'jira')
-  // slack_client is intentionally not rendered here — the reference design
-  // shows a single "Slack" card, and slack_own is this project's primary
-  // workspace connection.
-  const slackOwn = integrations.find((integration) => integration.type === 'slack_own')
+  // slack_own is deliberately not read here (PR #20 review): matching
+  // either type made this card's result depend on unspecified queryset
+  // ordering when both existed, and — more concretely — meant any project
+  // with a pre-existing installed slack_own row could never reach the
+  // slack_client Connect button below (slack_own's own installed status
+  // always won the match first). The Connect button only ever installs
+  // slack_client, so that's the only type this card looks at; a project
+  // with a slack_own connection instead isn't shown here at all — giving
+  // slack_own its own card is a separate follow-up, not a fix-in-place fit
+  // for this bug pass.
+  const slack = integrations.find((integration) => integration.type === 'slack_client')
   const teams = integrations.find((integration) => integration.type === 'teams')
 
   function integrationRowActions(
@@ -560,21 +592,41 @@ export function IntegrationsTab({ project }: { project: Project }) {
         description="Conversation & collaboration analysis"
         status={
           <>
-            <HealthBadge status={slackOwn?.health_status ?? 'not_configured'} />
-            {integrationRowActions(slackOwn, slackCheckHealth)}
+            <HealthBadge status={slack?.health_status ?? 'not_configured'} />
+            {slack?.slack_installed_at ? (
+              // Soft-badge tokens (tinted bg + matching text), same pair
+              // StatusBadge's "completed" state uses — not a bare
+              // text-green-600 (PR #20 review: CLAUDE.md's semantic
+              // status-color convention, not the --primary accent).
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
+                <CheckCircle className="size-3.5" aria-hidden="true" />
+                Connected
+              </span>
+            ) : (
+              canManage && (
+                <Button
+                  variant="outline"
+                  className="h-9 w-[115px] shrink-0 border-primary bg-transparent text-sm text-primary hover:bg-primary/5 hover:text-primary"
+                  asChild
+                >
+                  <a href={`${API_BASE_URL}/slack/install/${project.id}/slack_client/`}>Connect</a>
+                </Button>
+              )
+            )}
+            {integrationRowActions(slack, slackCheckHealth)}
           </>
         }
       >
-        {slackOwn?.slack_installed_at ? (
+        {slack?.slack_installed_at ? (
           <>
             <p className="text-sm text-slate-600">
               Installed in{' '}
               <span className="font-medium text-foreground">
-                {slackOwn.slack_team_name || 'the Slack workspace'}
+                {slack.slack_team_name || 'the Slack workspace'}
               </span>{' '}
-              &middot; {formatRelativeTime(slackOwn.slack_installed_at)}
+              &middot; {formatRelativeTime(slack.slack_installed_at)}
             </p>
-            <SlackChannelsSection integrationId={slackOwn.id} />
+            <SlackChannelsSection integrationId={slack.id} />
           </>
         ) : (
           <>
