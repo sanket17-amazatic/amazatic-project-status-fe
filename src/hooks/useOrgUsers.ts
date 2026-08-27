@@ -44,6 +44,13 @@ export interface UseOrgUsersParams {
 export function useOrgUsers({ search, role, status, page }: UseOrgUsersParams) {
   const query = useQuery<PaginatedResponse<OrgUser>, ApiError>({
     queryKey: ['org-users', { search, role, status, page }],
+    // Without this, a 403 (non-management account) retries 3x with
+    // exponential backoff before isError flips true — same issue useUsers()
+    // already guards against. In the retry gaps, isLoading is false,
+    // isError is still false, and data is still undefined, so the page
+    // misrenders the empty-results branch ("No users match your filters")
+    // instead of the 403 alert below.
+    retry: false,
     queryFn: () => {
       const params = new URLSearchParams()
       if (search) params.set('search', search)

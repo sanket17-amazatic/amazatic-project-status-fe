@@ -97,6 +97,14 @@ export function ProjectCreateWizard() {
   const [step, setStep] = useState(0)
   const navigate = useNavigate()
   const { data: users, isLoading: usersLoading } = useUsers()
+  // Only pm/management can be set as project manager (backend now enforces
+  // this too, ProjectSerializer.validate_project_manager) — team members
+  // stay unrestricted to any role, so this filter is scoped to the manager
+  // picker only, not the `users` list used for member_ids below.
+  const eligibleManagers = useMemo(
+    () => users.filter((user) => user.role === 'pm' || user.role === 'management'),
+    [users]
+  )
   const createProject = useCreateProject()
   const role = useAuthStore((state) => state.user?.role)
   const currentUserId = useAuthStore((state) => state.user?.id)
@@ -292,7 +300,7 @@ export function ProjectCreateWizard() {
                                 <ShimmerDiv mode="light" height={32} width="100%" loading />
                               </div>
                             ) : (
-                              users.map((user) => (
+                              eligibleManagers.map((user) => (
                                 <SelectItem key={user.id} value={String(user.id)}>
                                   {user.name || user.email}
                                 </SelectItem>

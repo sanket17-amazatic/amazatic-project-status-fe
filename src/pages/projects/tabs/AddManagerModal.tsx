@@ -29,6 +29,14 @@ export function AddManagerModal({ open, onOpenChange, projectId, users, currentM
   const addEmail = useAddAssociatedEmail(projectId)
   const removeEmail = useRemoveAssociatedEmail(projectId)
 
+  // Only pm/management can be set as project manager (backend now enforces
+  // this too, ProjectSerializer.validate_project_manager) — the current
+  // manager is kept even if somehow still `member` (pre-fix data) so the
+  // Select always has a match for its current value.
+  const eligibleManagers = users.filter(
+    (user) => user.role === 'pm' || user.role === 'management' || user.id === currentManagerId
+  )
+
   const [managerId, setManagerId] = useState(String(currentManagerId))
   const [email, setEmail] = useState('')
   const [touched, setTouched] = useState(false)
@@ -82,7 +90,7 @@ export function AddManagerModal({ open, onOpenChange, projectId, users, currentM
                   <SelectValue placeholder="Select a manager" />
                 </SelectTrigger>
                 <SelectContent>
-                  {users.map((user) => (
+                  {eligibleManagers.map((user) => (
                     <SelectItem key={user.id} value={String(user.id)}>
                       {user.name || user.email}
                     </SelectItem>
