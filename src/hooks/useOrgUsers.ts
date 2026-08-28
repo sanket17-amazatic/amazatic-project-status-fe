@@ -119,10 +119,11 @@ export interface UpdateUserInput {
   first_name: string
   last_name: string
   role: UserRole
+  is_active: boolean
 }
 
 /**
- * Edits an existing user's name/role — PATCH /api/org-users/:id/
+ * Edits an existing user's name/role/active-status — PATCH /api/org-users/:id/
  * (UserManagementViewSet.partial_update). Email stays fixed: it's the
  * Google SSO identity key, and changing it here would fight the
  * upsert-by-email semantics of the invite POST.
@@ -135,7 +136,18 @@ export function useUpdateUser(id: number | undefined) {
       queryClient.invalidateQueries({ queryKey: ['org-users'] })
       toast.success('User updated')
     },
-    onError: () => {
+    onError: (error: unknown) => {
+      // is_active carries a specific 400 (management disabling itself,
+      // UserManagementSerializer.validate_is_active) — surface that instead
+      // of the generic message so it doesn't look like a random failure.
+      if (error instanceof ApiError && error.body && typeof error.body === 'object') {
+        const body = error.body as Record<string, unknown>
+        const isActiveError = Array.isArray(body.is_active) ? body.is_active[0] : undefined
+        if (typeof isActiveError === 'string') {
+          toast.error(isActiveError)
+          return
+        }
+      }
       toast.error('Could not update user')
     },
   })

@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useAuthStore } from '@/stores/authStore'
 import { ROLE_OPTIONS } from '@/lib/roles'
 import { useUpdateUser, type OrgUser, type UpdateUserInput } from '@/hooks/useOrgUsers'
 import { ShimmerButton } from 'shimmer-effects-react'
@@ -34,6 +36,7 @@ const schema = z.object({
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
   role: z.enum(['management', 'pm', 'member'], { error: 'Role is required' }),
+  is_active: z.boolean(),
 })
 
 interface EditUserModalProps {
@@ -44,15 +47,22 @@ interface EditUserModalProps {
 /** Users admin page edit flow — mirrors InviteUserModal, minus email (fixed
  * to the Google SSO identity, not editable here). */
 export function EditUserModal({ user, onOpenChange }: EditUserModalProps) {
+  const currentUserId = useAuthStore((state) => state.user?.id)
+  const isSelf = user !== null && user.id === currentUserId
   const updateUser = useUpdateUser(user?.id)
   const form = useForm<UpdateUserInput>({
     resolver: zodResolver(schema),
-    defaultValues: { first_name: '', last_name: '', role: undefined },
+    defaultValues: { first_name: '', last_name: '', role: undefined, is_active: true },
   })
 
   useEffect(() => {
     if (user) {
-      form.reset({ first_name: user.first_name, last_name: user.last_name, role: user.role })
+      form.reset({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        role: user.role,
+        is_active: user.status === 'active',
+      })
     }
   }, [user, form])
 
@@ -129,6 +139,28 @@ export function EditUserModal({ user, onOpenChange }: EditUserModalProps) {
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex flex-row items-center gap-2">
+                    <FormLabel>Active</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isSelf}
+                        aria-label="Active"
+                      />
+                    </FormControl>
+                  </div>
+                  {isSelf && (
+                    <p className="text-xs text-slate-500">You can't disable your own account.</p>
+                  )}
                 </FormItem>
               )}
             />
