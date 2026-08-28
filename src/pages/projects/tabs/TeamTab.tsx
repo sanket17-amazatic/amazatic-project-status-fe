@@ -33,8 +33,15 @@ export function TeamTab({ project }: { project: Project }) {
   const projectId = String(project.id)
 
   const { data: members, isLoading: membersLoading } = useProjectMembers(projectId)
-  // useUsers() 403s for anyone who isn't management or PM — only fetch/render it when it's usable.
-  const { data: users, isLoading: usersLoading } = useUsers()
+  // useUsers() 403s for anyone who isn't management or PM (role field) —
+  // canManageTeam here is looser (also true for this project's own
+  // project_manager, whose role may still be plain "member" if no one's
+  // separately granted them the pm/management role via the Users page —
+  // those two are deliberately independent, see accounts.User.role and
+  // projects/serializers.py's mass-assignment-guard note). usersIsError
+  // catches that gap so it surfaces as an explicit message instead of a
+  // silently-broken "Add Team Members" link.
+  const { data: users, isLoading: usersLoading, isError: usersIsError } = useUsers()
   const removeMember = useRemoveMember(projectId)
 
   const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null)
@@ -71,8 +78,14 @@ export function TeamTab({ project }: { project: Project }) {
         <div className="flex w-full flex-col gap-2 lg:w-[565px] lg:shrink-0">
           <div className="flex items-center justify-between">
             <p className="text-sm text-black">Team Members</p>
-            {canManageTeam && (
+            {canManageTeam && !usersIsError && (
               <AddActionLink label="Add Team Members" onClick={() => setMembersModalOpen(true)} />
+            )}
+            {canManageTeam && usersIsError && (
+              <p className="text-xs text-slate-500">
+                Can't manage team members yet — ask management to grant your account the PM role
+                on the Users page.
+              </p>
             )}
           </div>
           <div className="flex min-h-[132px] flex-wrap items-start gap-2 rounded-sm border border-border p-[13px]">
@@ -109,7 +122,11 @@ export function TeamTab({ project }: { project: Project }) {
           open={membersModalOpen}
           onOpenChange={setMembersModalOpen}
           projectId={projectId}
-          users={users}
+          // Project's own manager can't also be picked as a team member
+          // (spec) — mirrors the create wizard's excludeUserId, which only
+          // covered this at creation time, not for an existing project
+          // (confirmed live: BBE's own PM still showed up here).
+          users={users.filter((user) => user.id !== project.project_manager)}
           members={members}
         />
       )}

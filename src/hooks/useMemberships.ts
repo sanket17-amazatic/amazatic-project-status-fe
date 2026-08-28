@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { getJson, postJson, patchJson, del } from '@/lib/api'
+import { getJson, postJson, patchJson, del, apiErrorDetail } from '@/lib/api'
 
 export interface Membership {
   id: number
@@ -47,6 +47,9 @@ export function useAddMember(projectId: string) {
       queryClient.invalidateQueries({ queryKey: ['members', projectId] })
       toast.success('Member added')
     },
+    onError: (error: unknown) => {
+      toast.error(apiErrorDetail(error) ?? 'Could not add member')
+    },
   })
 }
 
@@ -58,6 +61,9 @@ export function useRemoveMember(projectId: string) {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['members', projectId] })
       toast.success(`${variables.name} removed`)
+    },
+    onError: (error: unknown) => {
+      toast.error(apiErrorDetail(error) ?? 'Could not remove member')
     },
   })
 }
@@ -71,6 +77,9 @@ export function useAssignPM(projectId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] })
       toast.success('Changes saved')
+    },
+    onError: (error: unknown) => {
+      toast.error(apiErrorDetail(error) ?? 'Could not update project manager')
     },
   })
 }

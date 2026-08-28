@@ -50,63 +50,69 @@ export default function UsersPage() {
   const { data, isLoading, isError, error, refetch } = useOrgUsers({ search, role, status, page })
   const users = data?.results ?? []
   const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1
+  // A member-role account gets a 403 for every action this header offers
+  // (search/filter/invite all hit the same management-only endpoints) — no
+  // point rendering live-looking controls that can only ever fail.
+  const forbidden = isError && error?.status === 403
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div className="relative w-72">
-          <Search
-            className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-slate-400"
-            aria-hidden="true"
-          />
-          <Input
-            type="search"
-            placeholder="Search users..."
-            aria-label="Search users"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            className="h-9 pl-8"
-          />
+      {!forbidden && (
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="relative w-72">
+            <Search
+              className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
+            />
+            <Input
+              type="search"
+              placeholder="Search users..."
+              aria-label="Search users"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              className="h-9 pl-8"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <Select
+              value={role || 'all'}
+              onValueChange={(value) => setRole(value === 'all' ? '' : (value as UserRole))}
+            >
+              <SelectTrigger className="w-36" aria-label="Filter by role">
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                {ROLE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={status || 'all'}
+              onValueChange={(value) => setStatus(value === 'all' ? '' : (value as UserStatus))}
+            >
+              <SelectTrigger className="w-40" aria-label="Filter by status">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={() => setInviteOpen(true)}
+              className="bg-[#38C776] text-white hover:bg-[#2fb267]"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Invite User
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Select
-            value={role || 'all'}
-            onValueChange={(value) => setRole(value === 'all' ? '' : (value as UserRole))}
-          >
-            <SelectTrigger className="w-36" aria-label="Filter by role">
-              <SelectValue placeholder="All Roles" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              {ROLE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={status || 'all'}
-            onValueChange={(value) => setStatus(value === 'all' ? '' : (value as UserStatus))}
-          >
-            <SelectTrigger className="w-40" aria-label="Filter by status">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            onClick={() => setInviteOpen(true)}
-            className="bg-[#38C776] text-white hover:bg-[#2fb267]"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Invite User
-          </Button>
-        </div>
-      </div>
+      )}
 
       {isLoading && (
         <ShimmerTable

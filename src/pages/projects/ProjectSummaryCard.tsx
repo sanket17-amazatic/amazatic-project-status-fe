@@ -26,8 +26,10 @@ export function ProjectSummaryCard({ project, integrations, onRefresh }: Project
 
   const jira = integrations.find((integration) => integration.type === 'jira')
   const slack = integrations.find((integration) => integration.type === 'slack_own')
+  const teams = integrations.find((integration) => integration.type === 'teams')
   const jiraConnected = Boolean(jira?.enabled && jira.health_status === 'healthy')
   const slackConnected = Boolean(slack?.enabled && slack.health_status === 'healthy')
+  const teamsConnected = Boolean(teams?.enabled && teams.health_status === 'healthy')
 
   return (
     <div className="rounded-lg border border-border bg-card">
@@ -61,6 +63,12 @@ export function ProjectSummaryCard({ project, integrations, onRefresh }: Project
                 alt={jiraConnected ? 'Jira connected' : 'Jira not connected'}
                 title={jiraConnected ? 'Jira connected' : 'Jira not connected'}
                 className={cn('size-4', !jiraConnected && 'opacity-30 grayscale')}
+              />
+              <img
+                src="/icons/source-teams.svg"
+                alt={teamsConnected ? 'Teams connected' : 'Teams not connected'}
+                title={teamsConnected ? 'Teams connected' : 'Teams not connected'}
+                className={cn('size-4', !teamsConnected && 'opacity-30 grayscale')}
               />
             </div>
             <Link
