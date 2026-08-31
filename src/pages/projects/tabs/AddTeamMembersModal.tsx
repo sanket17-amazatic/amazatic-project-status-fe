@@ -77,8 +77,14 @@ export function AddTeamMembersModal({ open, onOpenChange, projectId, users, memb
     // so a brand-new member + their associated email set in the same
     // submission would otherwise race — the email POST could reach the
     // backend before the membership POST committed (confirmed live).
+    // allSettled, not Promise.all: one failed add (already added by
+    // someone else, transient error) must not abort the removals/email
+    // edits below that the user also submitted in the same click — each
+    // mutation's own onError already toasts its individual failure.
+    // Removes and email edits stay fire-and-forget below; they don't have
+    // the same adds-must-precede-emails ordering dependency on each other.
     const newlyAddedUsers = selectedUsers.filter((user) => !currentUserIds.has(user.id))
-    await Promise.all(newlyAddedUsers.map((user) => addMember.mutateAsync(user.id)))
+    await Promise.allSettled(newlyAddedUsers.map((user) => addMember.mutateAsync(user.id)))
 
     for (const member of members) {
       if (!nextUserIds.has(member.user)) {

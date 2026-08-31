@@ -25,18 +25,24 @@ export function ProjectSummaryCard({ project, integrations, onRefresh }: Project
   const lastSynced = formatIncidentTimestamp(project.last_synced)
 
   const jira = integrations.find((integration) => integration.type === 'jira')
-  // Both Slack integration types count as "Slack connected" for this pill —
-  // slack_own (Amazatic's own workspace) and slack_client (a client's
-  // workspace, what every real client project actually uses) — matching
-  // the backend's own ProjectIntegration.SLACK_TYPES grouping. Checking
-  // slack_own alone left the pill permanently dimmed for every client
-  // project regardless of actual connection status (confirmed live).
-  const slack = integrations.find(
-    (integration) => integration.type === 'slack_own' || integration.type === 'slack_client'
-  )
   const teams = integrations.find((integration) => integration.type === 'teams')
   const jiraConnected = Boolean(jira?.enabled && jira.health_status === 'healthy')
-  const slackConnected = Boolean(slack?.enabled && slack.health_status === 'healthy')
+  // Checks for ANY healthy Slack integration rather than picking one via
+  // .find() — slack_own (Amazatic's own workspace) and slack_client (a
+  // client's workspace, what every real client project actually uses) are
+  // fully interchangeable "is Slack connected" server-side
+  // (ProjectIntegration.SLACK_TYPES, get_slack_integration), and a project
+  // can have both rows at once (the uniqueness constraint is scoped per
+  // type, not per project). Picking a single one via .find() meant an
+  // unhealthy/never-configured slack_own row sorting first in the array
+  // left the pill dimmed even with a healthy slack_client connection
+  // right next to it (confirmed in review).
+  const slackConnected = integrations.some(
+    (integration) =>
+      (integration.type === 'slack_own' || integration.type === 'slack_client') &&
+      integration.enabled &&
+      integration.health_status === 'healthy'
+  )
   const teamsConnected = Boolean(teams?.enabled && teams.health_status === 'healthy')
 
   return (
