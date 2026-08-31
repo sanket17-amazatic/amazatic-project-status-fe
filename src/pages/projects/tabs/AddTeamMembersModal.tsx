@@ -67,15 +67,19 @@ export function AddTeamMembersModal({ open, onOpenChange, projectId, users, memb
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((existing) => existing !== id) : [...prev, id]))
   }
 
-  function handleUpdateMembers() {
+  async function handleUpdateMembers() {
     const currentUserIds = new Set(members.map((member) => member.user))
     const nextUserIds = new Set(selectedIds)
 
-    for (const user of selectedUsers) {
-      if (!currentUserIds.has(user.id)) {
-        addMember.mutate(user.id)
-      }
-    }
+    // Awaited, not fire-and-forget: the associated-email requests below
+    // require the membership to already exist server-side ("User must be
+    // a member of the project (or its PM) to have an associated email"),
+    // so a brand-new member + their associated email set in the same
+    // submission would otherwise race — the email POST could reach the
+    // backend before the membership POST committed (confirmed live).
+    const newlyAddedUsers = selectedUsers.filter((user) => !currentUserIds.has(user.id))
+    await Promise.all(newlyAddedUsers.map((user) => addMember.mutateAsync(user.id)))
+
     for (const member of members) {
       if (!nextUserIds.has(member.user)) {
         removeMember.mutate({ membershipId: member.id, name: member.user_name || member.user_email })
