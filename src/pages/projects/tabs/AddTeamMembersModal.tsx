@@ -67,15 +67,25 @@ export function AddTeamMembersModal({ open, onOpenChange, projectId, users, memb
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((existing) => existing !== id) : [...prev, id]))
   }
 
-  function handleUpdateMembers() {
+  async function handleUpdateMembers() {
     const currentUserIds = new Set(members.map((member) => member.user))
     const nextUserIds = new Set(selectedIds)
 
-    for (const user of selectedUsers) {
-      if (!currentUserIds.has(user.id)) {
-        addMember.mutate(user.id)
-      }
-    }
+    // Awaited, not fire-and-forget: the associated-email requests below
+    // require the membership to already exist server-side ("User must be
+    // a member of the project (or its PM) to have an associated email"),
+    // so a brand-new member + their associated email set in the same
+    // submission would otherwise race — the email POST could reach the
+    // backend before the membership POST committed (confirmed live).
+    // allSettled, not Promise.all: one failed add (already added by
+    // someone else, transient error) must not abort the removals/email
+    // edits below that the user also submitted in the same click — each
+    // mutation's own onError already toasts its individual failure.
+    // Removes and email edits stay fire-and-forget below; they don't have
+    // the same adds-must-precede-emails ordering dependency on each other.
+    const newlyAddedUsers = selectedUsers.filter((user) => !currentUserIds.has(user.id))
+    await Promise.allSettled(newlyAddedUsers.map((user) => addMember.mutateAsync(user.id)))
+
     for (const member of members) {
       if (!nextUserIds.has(member.user)) {
         removeMember.mutate({ membershipId: member.id, name: member.user_name || member.user_email })
