@@ -25,7 +25,15 @@ export function ProjectSummaryCard({ project, integrations, onRefresh }: Project
   const lastSynced = formatIncidentTimestamp(project.last_synced)
 
   const jira = integrations.find((integration) => integration.type === 'jira')
-  const slack = integrations.find((integration) => integration.type === 'slack_own')
+  // Both Slack integration types count as "Slack connected" for this pill —
+  // slack_own (Amazatic's own workspace) and slack_client (a client's
+  // workspace, what every real client project actually uses) — matching
+  // the backend's own ProjectIntegration.SLACK_TYPES grouping. Checking
+  // slack_own alone left the pill permanently dimmed for every client
+  // project regardless of actual connection status (confirmed live).
+  const slack = integrations.find(
+    (integration) => integration.type === 'slack_own' || integration.type === 'slack_client'
+  )
   const teams = integrations.find((integration) => integration.type === 'teams')
   const jiraConnected = Boolean(jira?.enabled && jira.health_status === 'healthy')
   const slackConnected = Boolean(slack?.enabled && slack.health_status === 'healthy')
