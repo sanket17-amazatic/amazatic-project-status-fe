@@ -28,6 +28,10 @@ export function SourceKpiCard({ label, icon, stat }: SourceKpiCardProps) {
             <p className="whitespace-nowrap text-xs font-medium text-muted-foreground">Critical</p>
           </div>
           <div className="flex flex-col items-center gap-1">
+            <p className="text-base font-semibold text-orange-600">{stat.high}</p>
+            <p className="whitespace-nowrap text-xs font-medium text-muted-foreground">High</p>
+          </div>
+          <div className="flex flex-col items-center gap-1">
             <p className="text-base font-semibold text-amber-600">{stat.medium}</p>
             <p className="whitespace-nowrap text-xs font-medium text-muted-foreground">Medium</p>
           </div>

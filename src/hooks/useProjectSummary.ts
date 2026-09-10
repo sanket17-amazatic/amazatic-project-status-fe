@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { getJson } from '@/lib/api'
+import type { IncidentSource } from '@/lib/sources'
 
 export type SummaryRange = 'today' | 'yesterday' | '7d' | '30d'
 
 export interface SourceSeverityCounts {
   critical: number
+  high: number
   medium: number
   low: number
   total: number
@@ -19,11 +21,11 @@ export interface ProjectSummary {
   range: SummaryRange
   narrative: string
   totals: SourceSeverityCounts
-  sources: {
-    slack: SourceSeverityCounts
-    teams: SourceSeverityCounts
-    jira: SourceSeverityCounts
-  }
+  // Partial, not a fixed 3-key shape: the API only includes a key when that
+  // integration is actually connected (enabled=True) for this project — a
+  // project with only Slack connected returns `{ slack: {...} }`, no
+  // teams/jira keys at all. Never assume all three are present.
+  sources: Partial<Record<IncidentSource, SourceSeverityCounts>>
   categories: CategoryCount[]
 }
 

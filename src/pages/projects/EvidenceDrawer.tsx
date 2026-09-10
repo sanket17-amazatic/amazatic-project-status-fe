@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Hash, ExternalLink } from 'lucide-react'
+import { Hash, User, ExternalLink } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -23,9 +23,9 @@ interface EvidenceDrawerProps {
 
 /**
  * Real data only — no fabricated evidence content. Message tab shows the
- * incident's own message_text/channel_name/created_at, labeled by its real
- * origin (Slack or Teams — see Incident.source); Jira tab lists real
- * jira_ticket_keys, linking out to the project's real jira_base_url. No
+ * incident's own message_text/channel_name/user_name/created_at, labeled by
+ * its real origin (Slack or Teams — see Incident.source); Jira tab lists
+ * real jira_ticket_keys, linking out to the project's real jira_base_url. No
  * Email tab — no backing data, same "hide empty tabs" pattern the
  * reference design itself uses.
  */
@@ -87,6 +87,13 @@ export function EvidenceDrawer({ incident, jiraBaseUrl, open, onOpenChange }: Ev
                       <div className="flex items-center gap-2">
                         <Hash className="size-3 shrink-0 text-foreground" aria-hidden="true" />
                         <p className="text-[13px] font-semibold text-foreground">{incident.channel_name}</p>
+                        {incident.user_name && (
+                          <>
+                            <span className="text-[13px] text-muted-foreground" aria-hidden="true">·</span>
+                            <User className="size-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            <p className="text-[13px] font-medium text-muted-foreground">{incident.user_name}</p>
+                          </>
+                        )}
                       </div>
                       <p className="whitespace-nowrap text-xs text-muted-foreground">
                         {formatIncidentTimestamp(incident.created_at)}

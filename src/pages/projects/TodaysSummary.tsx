@@ -78,12 +78,15 @@ export function TodaysSummary({ project }: TodaysSummaryProps) {
           <p className="text-sm font-medium text-foreground">{data.narrative}</p>
 
           <div className="flex flex-wrap items-stretch gap-3">
-            {SOURCE_ORDER.map((key) => (
+            {/* Only render a panel for a source the API actually returned —
+                it omits a key entirely when that integration isn't
+                connected for this project, rather than sending zeros. */}
+            {SOURCE_ORDER.filter((key) => data.sources[key] !== undefined).map((key) => (
               <SourceKpiCard
                 key={key}
                 label={SOURCE_META[key].label}
                 icon={SOURCE_META[key].icon}
-                stat={data.sources[key]}
+                stat={data.sources[key]!}
               />
             ))}
           </div>
